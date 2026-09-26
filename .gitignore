@@ -1,2 +1,5 @@
 node_modules/
 .aidonecheck/
+.build/
+.browser-runtime/
+*.tgz

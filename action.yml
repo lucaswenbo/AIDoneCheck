@@ -1,0 +1,32 @@
+name: AIDoneCheck
+description: 'AI says done. Verify Git changes, npm scripts and optional Chromium evidence.'
+author: Lucas Lu
+branding:
+  icon: check-circle
+  color: blue
+inputs:
+  working-directory:
+    description: 'Repository directory relative to GITHUB_WORKSPACE'
+    default: '.'
+  base:
+    description: 'Optional explicit Git base; otherwise use PR/push context or origin/HEAD'
+    default: ''
+  fail-on-warn:
+    description: 'Fail the step on WARN while keeping the WARN verdict'
+    default: 'false'
+outputs:
+  verdict:
+    description: 'PASS, WARN or BLOCK; unset on fatal startup error'
+  evidence_dir:
+    description: 'Unique absolute evidence directory for this invocation'
+  evidence_name:
+    description: 'Unique uploaded artifact name'
+  artifact_id:
+    description: 'ID returned by the artifact service'
+  artifact_url:
+    description: 'Uploaded artifact URL'
+  summary_path:
+    description: 'Saved copy of the job summary'
+runs:
+  using: node24
+  main: dist/action/index.js

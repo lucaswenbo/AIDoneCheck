@@ -1,0 +1,36 @@
+name: Test
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 24]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run check:dist
+      - run: npm run build
+      - run: npm test
+      - name: CLI smoke and package contents
+        run: |
+          node ./bin/aidonecheck.mjs --help
+          node ./bin/aidonecheck.mjs --version
+          node ./bin/aidonecheck.mjs doctor
+          npm pack --dry-run
+      - name: Verify generated dist remains identical
+        run: git diff --exit-code -- dist
