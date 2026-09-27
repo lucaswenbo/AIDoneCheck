@@ -16,17 +16,17 @@ Codex、Claude Code、Cursor、Copilot 或其他 Coding Agent 写完代码后，
 [![Test](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/test.yml/badge.svg)](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/test.yml)
 [![Action smoke](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/action-smoke.yml/badge.svg)](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/action-smoke.yml)
 [![Browser smoke](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/browser-smoke.yml/badge.svg)](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/browser-smoke.yml)
-[![版本](https://img.shields.io/badge/version-v1.0.1-2563eb)](https://github.com/lucaswenbo/AIDoneCheck/releases/tag/v1.0.1)
+[![版本](https://img.shields.io/badge/version-v1.0.2-2563eb)](https://github.com/lucaswenbo/AIDoneCheck/releases/tag/v1.0.2)
 [![MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 
 ## 30 秒开始使用
 
-**先看它真实跑一次：** [打开六场景演示](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/demo.yml) · [点击复现步骤](docs/demo.md)。无需你的网站或 Secrets；访客先 Fork 后即可 Run workflow。演示覆盖 PASS、WARN、真实 BLOCK 和路径错误，并下载验证每份 Evidence。
+**先看它真实跑一次：** [打开六场景演示](https://github.com/lucaswenbo/AIDoneCheck-Test/actions/workflows/demo.yml) · [点击复现步骤](https://github.com/lucaswenbo/AIDoneCheck-Test#readme)。无需你的网站或 Secrets；访客先 Fork 后即可 Run workflow。演示覆盖 PASS、WARN、真实 BLOCK 和路径错误，并下载验证每份 Evidence。
 
 **推荐先在 GitHub Actions 接入。** 下面是工作流中的一个 step，不是终端命令；在你要验收的项目中，完成 checkout 和项目依赖安装后添加：
 
 ```yaml
-- uses: lucaswenbo/AIDoneCheck@v1.0.1
+- uses: lucaswenbo/AIDoneCheck@v1.0.2
   id: verify
 ```
 
@@ -36,11 +36,11 @@ Codex、Claude Code、Cursor、Copilot 或其他 Coding Agent 写完代码后，
 
 > 默认检查 test、lint、typecheck、build。没有配置的脚本会 WARN；只有真实失败才 BLOCK。没有任何有意义验证不会 PASS。你可以按项目实际能力配置检查，但不要为变绿而关闭本来应该通过的检查。
 
-### 我应该用 v1.0.1、v1 还是 main？
+### 我应该用 v1.0.2、v1 还是 main？
 
 | 选择 | 行为 | 建议 |
 |---|---|---|
-| `@v1.0.1` | 固定本次已发布版本；按发布流程不移动 | **普通用户默认推荐**，升级时主动改版本 |
+| `@v1.0.2` | 固定本次已发布版本；按发布流程不移动 | **普通用户默认推荐**，升级时主动改版本 |
 | `@v1` | 跟随经过发布验证的最新 1.x 稳定版 | 接受兼容更新的项目 |
 | 完整 commit SHA | 锁定具体代码 | 对供应链锁定要求较高的团队；从对应 Release 获取 SHA |
 | `@main` | 最新开发代码，可能尚未发布 | 仅开发、试验和贡献，不作为生产默认引用 |
@@ -53,7 +53,7 @@ Codex、Claude Code、Cursor、Copilot 或其他 Coding Agent 写完代码后，
 需要 Node.js >=20、npm、Git。可以直接安装版本固定的 CLI 附件：
 
 ```bash
-npm install --global https://github.com/lucaswenbo/AIDoneCheck/releases/download/v1.0.1/aidonecheck-1.0.1.tgz
+npm install --global https://github.com/lucaswenbo/AIDoneCheck/releases/download/v1.0.2/aidonecheck-1.0.2.tgz
 aidonecheck --version
 ```
 
@@ -72,7 +72,7 @@ aidonecheck report
 **CLI 没有发布到 npm registry**，不要直接使用裸 `npx aidonecheck`。这里使用的是本仓库 Release 附件；可下载同页的 SHA256SUMS.txt 检查文件摘要。也可以 clone 固定 tag 后使用 `node ./bin/aidonecheck.mjs`，不需要为运行 CLI 安装本工具的开发依赖：
 
 ```bash
-git clone --branch v1.0.1 --depth 1 https://github.com/lucaswenbo/AIDoneCheck.git
+git clone --branch v1.0.2 --depth 1 https://github.com/lucaswenbo/AIDoneCheck.git
 node ./AIDoneCheck/bin/aidonecheck.mjs --help
 ```
 
@@ -107,6 +107,12 @@ AI 的“已完成”是一个声明。AIDoneCheck 把它转成能核对的事�
 
 默认不 fail-fast：test 失败后仍继续 lint、typecheck、build、Browser。致命启动错误可提前停止。
 
+## 显示语言
+
+当前工具生成的终端提示、Markdown 报告、Job Summary 和 Agent 反馈说明统一中文。PASS / WARN / BLOCK / SKIP、命令、文件名、JSON 字段与规范化数据保持原样；真实 stdout/stderr、页面错误和外部工具日志不翻译，以免改写证据。GitHub 自身界面和 Actions SDK 日志的语言不由本工具控制。旧运行记录不会被新版重写，请查看 AIDoneCheck-Test 使用 v1.0.2 的新运行。
+
+公开复现使用独立仓库 [AIDoneCheck-Test](https://github.com/lucaswenbo/AIDoneCheck-Test)，其中调用固定发布版本；本仓库内的 demo 工作流保留为发布前回归测试。
+
 ## CLI
 
 ```text
@@ -121,7 +127,7 @@ aidonecheck --version
 安装 Release CLI 包后可以直接使用 `aidonecheck`；源码方式为 `node /absolute/path/to/AIDoneCheck/bin/aidonecheck.mjs ...`。
 
 - **init**：在 Git 仓库根目录创建配置；已有文件拒绝覆盖，只有 `init --force` 才覆盖。拒绝写入配置 symlink。
-- **doctor**：只发现 Node/npm/Git、repo root、branch、HEAD、package.json、config、scripts 和可选 Playwright/Chromium。`PASS test script discovered` **不表示运行过测试**。不执行 test/lint/typecheck/build，不导航页面。退出码只有 0/2。
+- **doctor**：只发现 Node/npm/Git、repo root、branch、HEAD、package.json、config、scripts 和可选 Playwright/Chromium。`PASS test 脚本已发现` **不表示运行过测试**。不执行 test/lint/typecheck/build，不导航页面。退出码只有 0/2。
 - **check**：真正验收并保存 Evidence。所有项目命令从 repository root 执行，在子目录调用也一样。
 - **report**：只读取 `.aidonecheck/latest/report.json` 并输出摘要，不重新运行 Git 或其他检查。报告不存在、损坏时退出 2；成功读取退出 0，即使存储的 verdict 是 BLOCK。
 - **--json**：`check` 的 stdout 严格只有一个 JSON document；子进程输出全部捕获在报告中，诊断写 stderr。启动错误返回 JSON error object，退出 2。
@@ -255,7 +261,7 @@ Trace 为 AIDoneCheck 自定义保留规则，通过真实 Playwright tracing AP
   trace.zip         # 按保留规则生成
 ```
 
-`report.json` 使用独立 `version: "1.0.1"` 和 `schemaVersion: 1`，包含 verdict、repository、git、checks、warnings、failures、evidence。Markdown 显示分支、HEAD、base、changed files、结果和证据位置。
+`report.json` 使用独立 `version: "1.0.2"` 和 `schemaVersion: 1`，包含 verdict、repository、git、checks、warnings、failures、evidence。Markdown 显示分支、HEAD、base、changed files、结果和证据位置。
 
 本地先在临时目录写完整报告，再保存到 `.aidonecheck/runs/<unique-id>`，最后以原子替换的 latest 链接发布。并发运行拥有独立目录，读者不会读到半份报告；旧 run 保留以免正在读取的报告消失，可自行清理。首次迁移已有普通 latest 目录时会先备份、失败回滚。GitHub Action 每次调用在 runner temp 创建独立 Evidence，Artifact 名包含 run、attempt 和 UUID。
 
@@ -281,7 +287,7 @@ AI writes → AI says “done” → AIDoneCheck → Evidence → Agent fixes �
 
 JavaScript Action 使用 **node24** 和自包含 `dist/action/index.js`；不依赖调用者安装 AIDoneCheck dependencies。CLI 支持 Node >=20，CI 覆盖 Node 20/24。Playwright 仅在配置启用 Browser 时准备，版本固定，独立安装到 runner temp；不修改调用者的 package.json、package-lock 或 node_modules。
 
-推荐固定已发布版本 `@v1.0.1`。`@v1` 自动跟随 1.x，`@main` 仅供开发。下面是可以复制到你自己项目的完整工作流：
+推荐固定已发布版本 `@v1.0.2`。`@v1` 自动跟随 1.x，`@main` 仅供开发。下面是可以复制到你自己项目的完整工作流：
 
 ```yaml
 name: AIDoneCheck
@@ -301,7 +307,7 @@ jobs:
           node-version: 24
       - run: npm ci
       # 如启用 Browser，请在这里自行启动应用并等待 ready
-      - uses: lucaswenbo/AIDoneCheck@v1.0.1
+      - uses: lucaswenbo/AIDoneCheck@v1.0.2
         id: verify
         with:
           fail-on-warn: 'false'
@@ -311,7 +317,7 @@ jobs:
 
 输出：`verdict`、`evidence_dir`、`evidence_name`、`artifact_id`、`artifact_url`、`summary_path`。启动失败没有合法 verdict，不伪造为 BLOCK。
 
-顺序是：检查 → 生成 Evidence → 写 `GITHUB_STEP_SUMMARY` → 设置 outputs → 上传 Artifact → 最后传播成功/失败。PASS/WARN 默认成功；BLOCK、启动错误、上传等基础设施错误失败。即使 BLOCK 也先上传 Evidence，默认保留 7 天。Summary 包含 Verdict 及 Check / Result / Details 表格，并在 Evidence 中保存副本。环境错误生成 `startup-error.json` 和 Summary，不伪造完整验收结果。
+顺序是：检查 → 生成 Evidence → 写 `GITHUB_STEP_SUMMARY` → 设置 outputs → 上传 Artifact → 最后传播成功/失败。PASS/WARN 默认成功；BLOCK、启动错误、上传等基础设施错误失败。即使 BLOCK 也先上传 Evidence，默认保留 7 天。Summary 包含 结论及“检查项 / 结果 / 说明” 表格，并在 Evidence 中保存副本。环境错误生成 `startup-error.json` 和 Summary，不伪造完整验收结果。
 
 ## AIDoneCheck + ProdDoctor
 

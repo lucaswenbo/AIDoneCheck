@@ -1,4 +1,6 @@
-# 点击复现 AIDoneCheck 的真实检查
+# 主仓库内部演示与回归测试
+
+**公开体验请到独立的 [AIDoneCheck-Test](https://github.com/lucaswenbo/AIDoneCheck-Test)**：它直接调用固定发布版本。以下是本仓库保留的内部回归测试说明。
 
 不需要你的网站、Cloudflare、API Key 或额外 Secrets。演示在 GitHub Runner 内创建临时 Node.js/npm 项目、独立 Git 历史和本地 HTTP server，真正执行测试、TypeScript 类型检查、构建及 Chromium。
 

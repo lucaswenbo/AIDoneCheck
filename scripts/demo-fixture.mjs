@@ -28,4 +28,4 @@ if(name==='unsafe-path'){
   await write(root,'tests/escape.test.js',"import fs from 'node:fs';import os from 'node:os';fs.symlinkSync(os.tmpdir(),'escape','dir');\n");
 }
 await write(root,'.aidonecheck.json',config);
-console.log(`Prepared ${name}: ${selected.title}; expected ${selected.expected}`);
+console.log(`已准备 ${selected.title}（${name}）；预期 ${selected.expected}`);
