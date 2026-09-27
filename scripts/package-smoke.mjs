@@ -10,6 +10,11 @@ try {
   const pkg=JSON.parse(await fs.readFile(path.join(project,'package.json'),'utf8'));
   const tarball=process.argv[2]?path.resolve(process.argv[2]):path.join(tmp,JSON.parse(execFileSync('npm',['pack','--ignore-scripts','--json','--pack-destination',tmp],{cwd:project,encoding:'utf8'}))[0].filename);
   execFileSync('npm',['install','--prefix',tmp,'--ignore-scripts','--omit=dev','--no-audit','--no-fund',tarball],{encoding:'utf8'});
+  const installedRoot=path.join(tmp,'node_modules/aidonecheck');
+  const installedPkg=JSON.parse(await fs.readFile(path.join(installedRoot,'package.json'),'utf8'));
+  assert.equal(installedPkg.license,'Apache-2.0');
+  assert.match(await fs.readFile(path.join(installedRoot,'LICENSE'),'utf8'),/^Apache License\\n/);
+  assert.match(await fs.readFile(path.join(installedRoot,'NOTICE'),'utf8'),/Copyright 2026 Lucas Lu/);
   const cli=path.join(tmp,'node_modules/aidonecheck/bin/aidonecheck.mjs');
   assert.equal(execFileSync(process.execPath,[cli,'--version'],{encoding:'utf8'}).trim(),pkg.version);
   const f=await fixture(null,{test:'node --test check.mjs',typecheck:'node --check app.mjs',build:'node build.mjs'});root=f.root;
