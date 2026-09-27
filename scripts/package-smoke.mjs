@@ -13,7 +13,7 @@ try {
   const installedRoot=path.join(tmp,'node_modules/aidonecheck');
   const installedPkg=JSON.parse(await fs.readFile(path.join(installedRoot,'package.json'),'utf8'));
   assert.equal(installedPkg.license,'Apache-2.0');
-  assert.match(await fs.readFile(path.join(installedRoot,'LICENSE'),'utf8'),/^Apache License\\n/);
+  assert((await fs.readFile(path.join(installedRoot,'LICENSE'),'utf8')).startsWith('Apache License\n'));
   assert.match(await fs.readFile(path.join(installedRoot,'NOTICE'),'utf8'),/Copyright 2026 Lucas Lu/);
   const cli=path.join(tmp,'node_modules/aidonecheck/bin/aidonecheck.mjs');
   assert.equal(execFileSync(process.execPath,[cli,'--version'],{encoding:'utf8'}).trim(),pkg.version);
