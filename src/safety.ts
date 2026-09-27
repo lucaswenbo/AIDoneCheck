@@ -21,7 +21,7 @@ export async function safePath(root: string, input: string): Promise<string> {
   for (const part of normalized.split('/')) {
     cursor = path.join(cursor, part);
     let stat;
-    try { stat = await fs.lstat(cursor); } catch (e) { if ((e as NodeJS.ErrnoException).code === 'ENOENT') continue; throw e; }
+    try { stat = await fs.lstat(cursor); } catch (e) { if (['ENOENT','ENOTDIR'].includes((e as NodeJS.ErrnoException).code ?? '')) continue; throw e; }
     if (stat.isSymbolicLink()) {
       const target = path.resolve(path.dirname(cursor), await fs.readlink(cursor));
       if (!within(realRoot, target)) throw new StartupError(`Symlink escapes repository: ${normalized}`);

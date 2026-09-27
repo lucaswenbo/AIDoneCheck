@@ -33,7 +33,7 @@ export async function runCommand(executable: string, args: string[], options: { 
     }
     function done(code: number | null, signal: string | null) {
       if (finished) return; finished=true; clearTimeout(timer); if (deadline) clearTimeout(deadline);
-      if (!timedOut && grace) clearTimeout(grace);
+      if (grace) clearTimeout(grace);
       if (timedOut) kill('SIGKILL');
       resolve({exitCode:code,signal,durationMs:Math.round(performance.now()-start),stdout:stdout.toString('utf8')+(outTrunc?'\n[output truncated]':''),stderr:stderr.toString('utf8')+(errTrunc?'\n[output truncated]':''),timedOut,stdoutTruncated:outTrunc,stderrTruncated:errTrunc});
     }

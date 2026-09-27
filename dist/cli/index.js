@@ -38,7 +38,7 @@ async function safePath(root, input) {
     try {
       stat = await fs.lstat(cursor);
     } catch (e) {
-      if (e.code === "ENOENT") continue;
+      if (["ENOENT", "ENOTDIR"].includes(e.code ?? "")) continue;
       throw e;
     }
     if (stat.isSymbolicLink()) {
@@ -295,7 +295,7 @@ async function runCommand(executable, args, options) {
       finished = true;
       clearTimeout(timer);
       if (deadline) clearTimeout(deadline);
-      if (!timedOut && grace) clearTimeout(grace);
+      if (grace) clearTimeout(grace);
       if (timedOut) kill("SIGKILL");
       resolve({ exitCode: code, signal, durationMs: Math.round(performance.now() - start), stdout: stdout.toString("utf8") + (outTrunc ? "\n[output truncated]" : ""), stderr: stderr.toString("utf8") + (errTrunc ? "\n[output truncated]" : ""), timedOut, stdoutTruncated: outTrunc, stderrTruncated: errTrunc });
     }
@@ -631,13 +631,20 @@ async function check(options = {}) {
   await validatePaths(repo.root, config);
   await environment(repo.root);
   const discovery = await discover(repo.root);
-  const git2 = await collectGit(repo.root, { base: options.base, event: options.event ?? await actionEvent(), requireReliable: config.requirements.changedFiles.length > 0 });
+  const event = options.event ?? await actionEvent();
+  const gitOptions = { base: options.base, event, requireReliable: config.requirements.changedFiles.length > 0 };
+  await collectGit(repo.root, gitOptions);
   let browser;
   if (config.browser.enabled) browser = await prepareBrowser(repo.root);
   let target;
   try {
+    const scriptChecks = await runScripts(repo.root, config, discovery, options.scriptTimeoutMs);
+    const git2 = await collectGit(repo.root, gitOptions);
+    const finalRepo = await repository(repo.root);
     target = await prepareEvidence(repo.root, options.evidenceDirectory);
-    const checks = [{ id: "git", status: git2.reliable ? "pass" : "warn", blocking: false, meaningful: false, details: git2.warning ?? "Committed, staged, unstaged and untracked changes inspected" }];
+    const checks = [{ id: "git", status: git2.reliable ? "pass" : "warn", blocking: false, meaningful: false, details: git2.warning ?? "Committed, staged, unstaged and untracked changes inspected after project scripts" }, ...scriptChecks];
+    if (browser) checks.push(...await runBrowser(browser, config.browser, target.temp));
+    else checks.push({ id: "browser", status: "skipped", blocking: false, meaningful: false, details: "Browser check disabled" });
     for (const file of config.requirements.changedFiles) {
       const ok = git2.changedFiles.includes(file);
       checks.push({ id: `changedFiles:${file}`, status: ok ? "pass" : "fail", blocking: !ok, meaningful: true, details: ok ? `Changed file verified: ${file}` : `Required changed file was not in the reliable Git diff: ${file}` });
@@ -647,17 +654,14 @@ async function check(options = {}) {
       try {
         ok = (await fs8.stat(await safePath(repo.root, file))).isFile();
       } catch (e) {
-        if (e.code !== "ENOENT") throw e;
+        if (!["ENOENT", "ENOTDIR"].includes(e.code ?? "")) throw e;
       }
       checks.push({ id: `requiredFiles:${file}`, status: ok ? "pass" : "fail", blocking: !ok, meaningful: true, details: ok ? `Required file exists: ${file}` : `Required file is missing or not a regular file: ${file}` });
     }
-    checks.push(...await runScripts(repo.root, config, discovery, options.scriptTimeoutMs));
-    if (browser) checks.push(...await runBrowser(browser, config.browser, target.temp));
-    else checks.push({ id: "browser", status: "skipped", blocking: false, meaningful: false, details: "Browser check disabled" });
     if (!checks.some((c) => c.meaningful)) checks.push({ id: "verification", status: "warn", blocking: false, meaningful: false, details: "No meaningful verification was executed" });
     const files = ["report.json", "report.md", "agent-feedback.md"];
     for (const name of ["browser.png", "trace.zip"]) if (await fs8.stat(path5.join(target.temp, name)).catch(() => null)) files.push(name);
-    const report = { tool: "AIDoneCheck", version: VERSION, schemaVersion: 1, verdict: verdict(checks), createdAt: (/* @__PURE__ */ new Date()).toISOString(), repository: { branch: repo.branch, head: repo.head }, git: git2, checks, warnings: checks.filter((c) => c.status === "warn").map((c) => c.details), failures: checks.filter((c) => c.status === "fail" && c.blocking).map((c) => c.details), evidence: { directory: options.evidenceDirectory ?? ".aidonecheck/latest", files } };
+    const report = { tool: "AIDoneCheck", version: VERSION, schemaVersion: 1, verdict: verdict(checks), createdAt: (/* @__PURE__ */ new Date()).toISOString(), repository: { branch: finalRepo.branch, head: finalRepo.head }, git: git2, checks, warnings: checks.filter((c) => c.status === "warn").map((c) => c.details), failures: checks.filter((c) => c.status === "fail" && c.blocking).map((c) => c.details), evidence: { directory: options.evidenceDirectory ?? ".aidonecheck/latest", files } };
     return await finishEvidence(target, report);
   } finally {
     if (target) await fs8.rm(target.temp, { recursive: true, force: true }).catch(() => {

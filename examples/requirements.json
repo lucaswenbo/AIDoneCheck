@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "requirements": {
+    "changedFiles": ["src/auth.ts"],
+    "requiredFiles": ["test/auth.test.ts"]
+  }
+}

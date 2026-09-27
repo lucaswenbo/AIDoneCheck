@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "browser": {
+    "enabled": true,
+    "url": "http://127.0.0.1:3000",
+    "expect": "Welcome",
+    "failConsole": false,
+    "profile": "desktop",
+    "trace": "on-failure"
+  }
+}

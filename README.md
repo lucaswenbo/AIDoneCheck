@@ -13,32 +13,68 @@ Codex、Claude Code、Cursor、Copilot 或其他 Coding Agent 写完代码后，
 
 以及人类和 Agent 都能读取的 Evidence。
 
+[![Test](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/test.yml/badge.svg)](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/test.yml)
+[![Action smoke](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/action-smoke.yml/badge.svg)](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/action-smoke.yml)
+[![Browser smoke](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/browser-smoke.yml/badge.svg)](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/browser-smoke.yml)
+[![版本](https://img.shields.io/badge/version-v1.0.0-2563eb)](https://github.com/lucaswenbo/AIDoneCheck/releases/tag/v1.0.0)
+[![MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
+
 ## 30 秒开始使用
 
-需要 Node.js >=20、npm 和 Git。**1.0.0 仍为 Unreleased，尚未发布到 npm，也没有 v1.0.0 tag。** 当前请从开发分支使用源码及随仓库提供的 CLI dist：
+**推荐先在 GitHub Actions 接入。** 下面是工作流中的一个 step，不是终端命令；在你要验收的项目中，完成 checkout 和项目依赖安装后添加：
 
-```bash
-git clone --branch feat/v1.0.0 https://github.com/lucaswenbo/AIDoneCheck.git
-cd AIDoneCheck
-node ./bin/aidonecheck.mjs --help
+```yaml
+- uses: lucaswenbo/AIDoneCheck@v1.0.0
+  id: verify
 ```
 
-验收你自己的项目（将下面路径替换成你的本地路径）：
+不会调用 LLM，不需要 OpenAI/Claude API Key。Action 自带运行依赖，默认检查 Git 和现有 npm scripts；Browser 默认关闭。
+
+第一次使用：复制 [完整工作流](examples/verify-task.yml) 到**你自己的项目**的 `.github/workflows/verify-task.yml` 并提交。打开 GitHub → Actions → **AIDoneCheck 验收代码任务** → Run workflow。进入该次运行查看 Job Summary 和 Artifacts；BLOCK 时 Evidence 仍会上传。
+
+> 默认检查 test、lint、typecheck、build。没有配置的脚本会 WARN；只有真实失败才 BLOCK。没有任何有意义验证不会 PASS。你可以按项目实际能力配置检查，但不要为变绿而关闭本来应该通过的检查。
+
+### 我应该用 v1.0.0、v1 还是 main？
+
+| 选择 | 行为 | 建议 |
+|---|---|---|
+| `@v1.0.0` | 固定本次已发布版本；按发布流程不移动 | **普通用户默认推荐**，升级时主动改版本 |
+| `@v1` | 跟随经过发布验证的最新 1.x 稳定版 | 接受兼容更新的项目 |
+| 完整 commit SHA | 锁定具体代码 | 对供应链锁定要求较高的团队；从对应 Release 获取 SHA |
+| `@main` | 最新开发代码，可能尚未发布 | 仅开发、试验和贡献，不作为生产默认引用 |
+| `feat/*` | 尚在审查中的开发分支 | 不用于正式接入 |
+
+查看 [最新 Release](https://github.com/lucaswenbo/AIDoneCheck/releases/latest)。需要回退时切换到之前的固定版本；不要让 `v1` 或 main 承担固定版本的含义。
+
+### 本地 CLI：安装公开 Release 下载包
+
+需要 Node.js >=20、npm、Git。可以直接安装版本固定的 CLI 附件：
 
 ```bash
-# 在 AIDoneCheck 目录记录 CLI 的绝对路径
-ADC="$(pwd)/bin/aidonecheck.mjs"
-cd /path/to/your/node-project
+npm install --global https://github.com/lucaswenbo/AIDoneCheck/releases/download/v1.0.0/aidonecheck-1.0.0.tgz
+aidonecheck --version
+```
 
-# 用户自己负责安装项目依赖；工具不会替你安装或启动应用
+进入你自己的 Node.js/npm 项目，再执行：
+
+```bash
 npm ci
-node "$ADC" init
-node "$ADC" doctor
-node "$ADC" check --base origin/main
-node "$ADC" report
+aidonecheck init
+aidonecheck doctor
+aidonecheck check --base origin/main
+aidonecheck report
 ```
 
-没有 `.aidonecheck.json` 也可以直接 `check`，它使用内置默认值。建议手动把 `.aidonecheck/` 加入你项目的 `.gitignore`；工具不会自动修改它。
+如果仓库没有 `origin/main`，将 base 换成真实的默认分支，例如 `origin/master`。也可省略 base，由工具按文档发现可靠默认分支；不会猜一个空 diff。
+
+**CLI 没有发布到 npm registry**，不要直接使用裸 `npx aidonecheck`。这里使用的是本仓库 Release 附件；可下载同页的 SHA256SUMS.txt 检查文件摘要。也可以 clone 固定 tag 后使用 `node ./bin/aidonecheck.mjs`，不需要为运行 CLI 安装本工具的开发依赖：
+
+```bash
+git clone --branch v1.0.0 --depth 1 https://github.com/lucaswenbo/AIDoneCheck.git
+node ./AIDoneCheck/bin/aidonecheck.mjs --help
+```
+
+没有 `.aidonecheck.json` 也可直接 check，它使用默认配置。建议手动把 `.aidonecheck/` 加入你的 `.gitignore`；工具不会自动修改它。
 
 ## 是什么，为什么需要它
 
@@ -80,7 +116,7 @@ aidonecheck --help
 aidonecheck --version
 ```
 
-上述命令名展示将来的 binary 用法；当前源码运行方式是 `node /absolute/path/to/AIDoneCheck/bin/aidonecheck.mjs ...`。
+安装 Release CLI 包后可以直接使用 `aidonecheck`；源码方式为 `node /absolute/path/to/AIDoneCheck/bin/aidonecheck.mjs ...`。
 
 - **init**：在 Git 仓库根目录创建配置；已有文件拒绝覆盖，只有 `init --force` 才覆盖。拒绝写入配置 symlink。
 - **doctor**：只发现 Node/npm/Git、repo root、branch、HEAD、package.json、config、scripts 和可选 Playwright/Chromium。`PASS test script discovered` **不表示运行过测试**。不执行 test/lint/typecheck/build，不导航页面。退出码只有 0/2。
@@ -122,6 +158,8 @@ npm scripts 默认超时 10 分钟，Browser navigation 默认超时 30 秒。�
 `typecheck` 和 `check-types` 同时存在时只执行 `typecheck`。使用 npm 执行发现的允许 scripts，包含 npm 自身正常的生命周期行为；不自行解析 script 为 shell 命令。
 
 ## Git diff
+
+在启动阶段先验证 diff 基准；npm scripts 完成后重新收集 Git 和工作区状态，再检查文件要求。脚本生成、删除或恢复文件都会按实际结果处理，避免沿用执行前的假 PASS。
 
 最终 changed files = committed ∪ staged ∪ unstaged ∪ untracked。ignored files 不作为 untracked 计入。rename 的旧路径和新路径均保留；删除也属于修改。只记录路径，不采集补丁正文、Git remote URL 或认证信息。
 
@@ -193,7 +231,7 @@ ADC_BROWSER_RUNTIME="$(mktemp -d)"
 npm install --prefix "$ADC_BROWSER_RUNTIME" --ignore-scripts --package-lock=false --no-audit --no-fund playwright@1.63.0
 node "$ADC_BROWSER_RUNTIME/node_modules/playwright/cli.js" install chromium
 export AIDONECHECK_PLAYWRIGHT_DIR="$ADC_BROWSER_RUNTIME"
-node "$ADC" check --base origin/main
+aidonecheck check --base origin/main
 ```
 
 Linux 如缺少系统库，请在合适的开发/CI 环境使用 Playwright 的 `install --with-deps chromium`。本地也可以使用仓库已有的 Playwright，但必须是明确固定的 `1.63.0`。doctor 只发现可执行文件，不证明启动能力。
@@ -241,11 +279,11 @@ AI writes → AI says “done” → AIDoneCheck → Evidence → Agent fixes �
 
 JavaScript Action 使用 **node24** 和自包含 `dist/action/index.js`；不依赖调用者安装 AIDoneCheck dependencies。CLI 支持 Node >=20，CI 覆盖 Node 20/24。Playwright 仅在配置启用 Browser 时准备，版本固定，独立安装到 runner temp；不修改调用者的 package.json、package-lock 或 node_modules。
 
-以下 `@main` 是正式 Release 前的开发示例，需本 PR 合并进 main 后才可用；目前尚无 v1.0.0 tag。开发分支自身的 smoke 使用 `uses: ./` 检查当前代码。公开稳定 Release 后应改用经过验证的不可变版本 SHA。
+推荐固定已发布版本 `@v1.0.0`。`@v1` 自动跟随 1.x，`@main` 仅供开发。下面是可以复制到你自己项目的完整工作流：
 
 ```yaml
 name: AIDoneCheck
-on: [push, pull_request]
+on: [workflow_dispatch, push, pull_request]
 permissions:
   contents: read
 jobs:
@@ -261,7 +299,7 @@ jobs:
           node-version: 24
       - run: npm ci
       # 如启用 Browser，请在这里自行启动应用并等待 ready
-      - uses: lucaswenbo/AIDoneCheck@main
+      - uses: lucaswenbo/AIDoneCheck@v1.0.0
         id: verify
         with:
           fail-on-warn: 'false'
@@ -300,7 +338,7 @@ jobs:
 - requiredFiles / changedFiles 只支持精确路径，没有 glob。
 - Windows 未完整测试，不提供正式支持保证；原子链接和进程清理以 Linux CI 为主要验证环境。
 - 当前 Action 面向 GitHub.com 支持 Artifact 服务的 Runner；不宣称支持 GitHub Enterprise Server。
-- 不自动 npm publish、创建 tag/Release、合并 PR 或发布 Marketplace。
+- 验收 CLI/Action 不会替用户修代码、合并 PR 或发布其项目。AIDoneCheck 自身的 tags/Release 由独立发布工作流管理；不发布 npm registry 或 Marketplace。
 
 ## Roadmap
 
@@ -316,7 +354,9 @@ npm run typecheck
 npm run lint
 npm run build
 npm test
+npm run test:package
 npm run check:dist
+npm run release:check
 ```
 
 构建工具使用 esbuild。CLI bundle 不包含 Action SDK；Action bundle 含全部普通依赖（构建依赖列在 devDependencies），不依赖调用者 node_modules。可选 Playwright 通过独立 runtime 动态加载。dist 随源码提交，CI 校验重新构建一致。
@@ -329,8 +369,12 @@ npm run test:browser
 
 Browser smoke 只使用本地 fixture server，覆盖 PASS、pageerror、同源请求失败、stylesheet/main document 错误、跨源失败、console 策略、expect、空页面、截图和真实 trace。Action smoke 在没有 npm ci 的调用方环境运行 `uses: ./`，故意制造 BLOCK，再下载并检查 Artifact；**被测 Action 正确失败、Evidence 保留、整个 smoke workflow 成功**才算通过。
 
-测试覆盖 Demo A（健康项目 PASS）、Demo B（真实断言失败 BLOCK 并保留报告）、Demo C（pageerror BLOCK 并保留截图/Trace/报告）。CI 全绿是提交最终 PR 的门槛，不以尚未运行的测试作完成声明。
+测试覆盖 Demo A（健康项目 PASS）、Demo B（真实断言失败 BLOCK 并保留报告）、Demo C（pageerror BLOCK 并保留截图/Trace/报告）。main 的三条 CI 必须验证同一个提交并全部通过，发布程序还会独立安装实际 CLI 包再创建稳定 Release。见 [维护者发布说明](docs/releasing.md)。不以尚未运行的测试作完成声明。
 
 ## MIT
 
 本项目采用 [MIT License](LICENSE)。打包依赖的许可证声明保留于 dist；设计参考不构成与 ProdDoctor 的运行时耦合。
+
+## 问题反馈
+
+请在 [GitHub Issues](https://github.com/lucaswenbo/AIDoneCheck/issues) 提供工具版本、Node/npm 版本、调用方式，以及删除敏感信息后的 report/日志。先用 doctor 确认环境；报告缺失时检查是否为退出码 2 的启动错误。当前文档先提供中文，后续再增加英文版本。

@@ -1,0 +1,90 @@
+name: Publish verified release
+on:
+  workflow_run:
+    workflows: [Test, Browser smoke, Action smoke]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: aidonecheck-release
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: >-
+      github.repository == 'lucaswenbo/AIDoneCheck' &&
+      ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    outputs:
+      published: ${{ steps.release.outputs.published }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Require all exact-main CI gates before publishing
+        id: release
+        env:
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/publish-release.mjs
+  public-consumer:
+    needs: publish
+    if: needs.publish.outputs.published == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Test the actual public Release download and checksum
+        run: node scripts/public-release-smoke.mjs
+      - run: node scripts/action-fixture.mjs .smoke
+      - name: Consume fixed published Action exactly as users do
+        id: fixed
+        uses: lucaswenbo/AIDoneCheck@v1.0.0
+        with:
+          working-directory: .smoke
+          base: main
+      - name: Consume floating compatible Action
+        id: major
+        uses: lucaswenbo/AIDoneCheck@v1
+        with:
+          working-directory: .smoke
+          base: main
+      - name: Verify public Action reports and isolation
+        env:
+          FIXED_DIR: ${{ steps.fixed.outputs.evidence_dir }}
+          MAJOR_DIR: ${{ steps.major.outputs.evidence_dir }}
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          const version=JSON.parse(fs.readFileSync('package.json')).version;
+          for(const dir of [process.env.FIXED_DIR,process.env.MAJOR_DIR]){
+            const report=JSON.parse(fs.readFileSync(dir+'/report.json'));
+            assert.equal(report.version,version);assert.equal(report.verdict,'PASS');
+          }
+          assert.notEqual(process.env.FIXED_DIR,process.env.MAJOR_DIR);
+          JS
