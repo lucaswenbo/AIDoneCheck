@@ -8,6 +8,6 @@ const report=JSON.parse(await fs.readFile(path.join(directory,'report.json'),'ut
 assert.equal(report.verdict,process.env.EXPECTED_VERDICT);
 for(const name of ['report.json','report.md','agent-feedback.md','summary.md',...(process.env.BROWSER==='true'?['browser.png','trace.zip']:[])])assert((await fs.stat(path.join(directory,name))).size>0,`Missing ${name}`);
 const summary=await fs.readFile(path.join(directory,'summary.md'),'utf8');
-assert(summary.includes(report.verdict));assert(summary.includes('| Check | Result | Details |'));
+assert(summary.includes(report.verdict));assert(summary.includes('| 检查项 | 结果 | 说明 |'));
 if(process.env.FIRST_DIR){assert.notEqual(directory,process.env.FIRST_DIR);assert.notEqual(process.env.EVIDENCE_NAME,process.env.FIRST_NAME);assert((await fs.stat(path.join(process.env.FIRST_DIR,'report.json'))).size>0);}
 console.log('Action outcome, summary, outputs and preserved evidence verified');

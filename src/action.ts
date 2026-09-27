@@ -9,6 +9,7 @@ import { repository, actionEvent } from './git.js';
 import { loadConfig } from './config.js';
 import { runNpm, runCommand } from './command.js';
 import { markdown, exitCode } from './report.js';
+import { displayMessage } from './display.js';
 import { redact, within } from './safety.js';
 import { PLAYWRIGHT_VERSION, StartupError } from './types.js';
 export async function installBrowserRuntime():Promise<void> {
@@ -43,16 +44,16 @@ async function action():Promise<void> {
     if(process.env.GITHUB_STEP_SUMMARY)await fs.appendFile(process.env.GITHUB_STEP_SUMMARY,summary);
     core.setOutput('verdict',report.verdict);
     failed=exitCode(report,failOnWarn)!==0;
-    core.info(`AIDoneCheck verdict: ${report.verdict}`);
+    core.info(`AIDoneCheck 结论： ${report.verdict}`);
   }catch(e){
     failed=true;
     const message=redact((e as Error).message);
     await fs.mkdir(dir,{recursive:true});
     await fs.writeFile(path.join(dir,'startup-error.json'),JSON.stringify({tool:'AIDoneCheck',error:message,exitCode:2},null,2)+'\n');
-    const summary=`# AIDoneCheck — ERROR\n\nFatal startup/infrastructure error; verification did not complete.\n\n${message.replace(/[<>]/g,'')}\n`;
+    const summary=`# AIDoneCheck — ERROR\n\n发生启动或基础设施错误，验证未完成。\n\n${displayMessage(message).replace(/[<>]/g,'')}\n`;
     await fs.writeFile(path.join(dir,'summary.md'),summary);
     if(process.env.GITHUB_STEP_SUMMARY)await fs.appendFile(process.env.GITHUB_STEP_SUMMARY,summary);
-    core.error(message);
+    core.error(displayMessage(message));
   }
   core.setOutput('evidence_dir',dir);core.setOutput('evidence_name',name);
   core.setOutput('summary_path',path.join(dir,'summary.md'));
@@ -62,7 +63,7 @@ async function action():Promise<void> {
     if(!artifact.id)throw new Error('Artifact service returned no artifact ID');
     core.setOutput('artifact_id',String(artifact.id));
     core.setOutput('artifact_url',`${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}/artifacts/${artifact.id}`);
-  }catch(e){failed=true;core.error(`Evidence upload failed: ${redact((e as Error).message)}`);}
-  if(failed)core.setFailed('AIDoneCheck did not pass. Inspect the preserved evidence and summary.');
+  }catch(e){failed=true;core.error(`证据上传失败：${displayMessage(redact((e as Error).message))}`);}
+  if(failed)core.setFailed('AIDoneCheck 未通过。请查看已保留的证据和总结。');
 }
-void action().catch(e=>core.setFailed(redact((e as Error).message)));
+void action().catch(e=>core.setFailed(displayMessage(redact((e as Error).message))));

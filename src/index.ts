@@ -8,3 +8,4 @@ export * from './evidence.js';
 export * from './engine.js';
 export * from './browser.js';
 export * from './safety.js';
+export * from './display.js';

@@ -1,6 +1,6 @@
 export const demoCases={
   healthy:{title:'健康项目',expected:'PASS',reason:'真实测试、TypeScript 类型检查、构建、指定修改与文件存在要求全部通过。'},
-  'no-tests':{title:'没有真实测试',expected:'WARN',reason:'npm 默认 placeholder 不算测试；类型检查和构建继续运行。'},
+  'no-tests':{title:'没有真实测试',expected:'WARN',reason:'npm 默认占位脚本 不算测试；类型检查和构建继续运行。'},
   'test-failure':{title:'真实断言失败',expected:'BLOCK',reason:'把加法错误写成减法；测试必须失败，后续类型检查与构建仍执行。'},
   pageerror:{title:'页面运行时错误',expected:'BLOCK',reason:'本地页面真实抛出 pageerror，保存截图、Trace 和失败反馈。'},
   'resource-overflow':{title:'记录上限后的关键资源失败',expected:'BLOCK',reason:'大量跨源错误之后，同源脚本 404 仍必须阻断；不能因日志截断漏判。'},

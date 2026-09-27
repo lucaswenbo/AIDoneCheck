@@ -21,7 +21,7 @@ try{
     const report=JSON.parse(await fs.readFile(path.join(directory,'report.json'),'utf8'));
     actual=report.verdict;assert.equal(actual,selected.expected);assert.equal(process.env.VERDICT,actual);
     assert.equal(report.version,JSON.parse(await fs.readFile('package.json','utf8')).version);
-    assert.match(summary,/\| Check \| Result \| Details \|/);
+    assert.match(summary,/\| 检查项 \| 结果 \| 说明 \|/);
     for(const file of ['report.json','report.md','agent-feedback.md'])assert((await fs.stat(path.join(directory,file))).size>0);
     const check=id=>report.checks.find(c=>c.id===id);
     for(const id of ['typecheck','build','changedFiles:src/sum.js','requiredFiles:dist/sum.js'])assert.equal(check(id)?.status,'pass',`${id} did not pass`);
@@ -35,16 +35,16 @@ try{
       const png=await fs.readFile(path.join(directory,'browser.png'));assert.equal(png.subarray(1,4).toString(),'PNG');
       const entries=execFileSync('unzip',['-Z1',path.join(directory,'trace.zip')],{encoding:'utf8'});assert(entries.includes('.trace')&&entries.includes('.network'));
       if(name==='pageerror')assert.match(text,/fixture pageerror/);
-      else {assert.equal(data.resources.length,200);assert(data.omittedCriticalFailureEvents>0);assert.match(text,/omitted from detailed evidence/);}
+      else {assert.equal(data.resources.length,200);assert(data.omittedCriticalFailureEvents>0);assert.match(text,/详细记录之外仍检测到/);}
     }else for(const file of ['browser.png','trace.zip'])await assert.rejects(fs.stat(path.join(directory,file)));
   }
   verified=true;
-  console.log(`${name}: expected ${selected.expected}, actual ${actual}; outcome, reports and Artifact verified`);
+  console.log(`${name}: 预期 ${selected.expected}，实际 ${actual}；执行结果、报告和产物已验证`);
 }catch(e){problem=e.message;throw e;}
 finally{
   if(process.env.GITHUB_STEP_SUMMARY){
     const clean=s=>String(s).replace(/[|<>\r\n]/g,' ');
     const link=process.env.ARTIFACT_ID?`${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}/artifacts/${process.env.ARTIFACT_ID}`:'';
-    await fs.appendFile(process.env.GITHUB_STEP_SUMMARY,`\n## 可复现演示：${selected.title}\n\n${selected.reason}\n\n| 预期 | 实际记录 | 演示断言 |\n|---|---|---|\n| ${selected.expected} | ${actual} | ${verified?'通过':'失败'} |\n\n${link?`[下载本场景 Evidence](${link})`:'未生成 Artifact'}\n\n${verified?'演示成功表示检查行为符合预期；BLOCK 场景中的故障仍然存在，没有被修复或隐藏。':`断言失败：${clean(problem)}`}\n`);
+    await fs.appendFile(process.env.GITHUB_STEP_SUMMARY,`\n## 可复现演示：${selected.title}\n\n${selected.reason}\n\n| 预期 | 实际记录 | 演示断言 |\n|---|---|---|\n| ${selected.expected} | ${actual} | ${verified?'通过':'失败'} |\n\n${link?`[下载本场景证据](${link})`:'未生成 Artifact'}\n\n${verified?'演示成功表示检查行为符合预期；BLOCK 场景中的故障仍然存在，没有被修复或隐藏。':`断言失败：${clean(problem)}`}\n`);
   }
 }
