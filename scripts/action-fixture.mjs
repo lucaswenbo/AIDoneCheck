@@ -1,0 +1,12 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {fixture,write,quietConfig,git} from '../test/helpers.mjs';
+const directory=path.resolve(process.argv[2]);
+const url=process.argv[3];
+await fs.mkdir(directory,{recursive:true});
+git(directory,'init','-b','main');git(directory,'config','user.name','AIDoneCheck smoke');git(directory,'config','user.email','smoke@example.invalid');
+await write(directory,'.gitignore','.aidonecheck/\n');
+await write(directory,'package.json',{name:'action-fixture',version:'1.0.0',scripts:{test:'node --test test.mjs'}});
+await write(directory,'test.mjs',"import test from 'node:test';import assert from 'node:assert/strict';test('fixture arithmetic',()=>assert.equal(2+2,4));\n");
+await write(directory,'.aidonecheck.json',{...quietConfig(),checks:{test:true,lint:false,typecheck:false,build:false},...(url?{browser:{enabled:true,url,trace:'on-failure'}}:{})});
+git(directory,'add','.');git(directory,'commit','-m','action fixture');

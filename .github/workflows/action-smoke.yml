@@ -1,0 +1,92 @@
+name: Action smoke
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  action:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # Deliberately no npm ci: the checked-in Action dist must be self-contained.
+      - name: Create real PASS fixture
+        run: node scripts/action-fixture.mjs .smoke
+      - name: Current Action PASS
+        id: pass
+        uses: ./
+        with:
+          working-directory: .smoke
+          base: main
+      - name: Verify PASS artifact and evidence
+        if: always()
+        env:
+          EVIDENCE_DIR: ${{ steps.pass.outputs.evidence_dir }}
+          EVIDENCE_NAME: ${{ steps.pass.outputs.evidence_name }}
+          ARTIFACT_ID: ${{ steps.pass.outputs.artifact_id }}
+          ACTION_OUTCOME: ${{ steps.pass.outcome }}
+          EXPECTED_VERDICT: PASS
+        run: node scripts/assert-action.mjs
+      - name: Start local fixture server and introduce real failures
+        run: |
+          node scripts/fixture-server.mjs 0 "$RUNNER_TEMP/aidonecheck-fixture-url" > "$RUNNER_TEMP/fixture.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/aidonecheck-fixture-pid"
+          node --input-type=module <<'JS'
+          import fs from 'node:fs/promises';
+          import path from 'node:path';
+          const urlFile=path.join(process.env.RUNNER_TEMP,'aidonecheck-fixture-url');
+          let url;
+          for(let n=0;n<100;n++){try{url=await fs.readFile(urlFile,'utf8');break;}catch{await new Promise(r=>setTimeout(r,100));}}
+          if(!url)throw new Error('Fixture server failed to start');
+          const config=JSON.parse(await fs.readFile('.smoke/.aidonecheck.json','utf8'));
+          config.browser={enabled:true,url:url+'/pageerror',trace:'on-failure'};
+          await fs.writeFile('.smoke/.aidonecheck.json',JSON.stringify(config));
+          await fs.writeFile('.smoke/test.mjs','import assert from "node:assert/strict";assert.equal(4,5);');
+          JS
+      - name: Current Action BLOCK with browser evidence
+        id: block
+        continue-on-error: true
+        uses: ./
+        with:
+          working-directory: .smoke
+          base: main
+      - name: Assert correct failure, outputs, summary and isolation
+        if: always()
+        env:
+          EVIDENCE_DIR: ${{ steps.block.outputs.evidence_dir }}
+          EVIDENCE_NAME: ${{ steps.block.outputs.evidence_name }}
+          ARTIFACT_ID: ${{ steps.block.outputs.artifact_id }}
+          ACTION_OUTCOME: ${{ steps.block.outcome }}
+          EXPECTED_VERDICT: BLOCK
+          BROWSER: 'true'
+          FIRST_DIR: ${{ steps.pass.outputs.evidence_dir }}
+          FIRST_NAME: ${{ steps.pass.outputs.evidence_name }}
+        run: node scripts/assert-action.mjs
+      - name: Download the BLOCK artifact from GitHub
+        if: always()
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ steps.block.outputs.evidence_name }}
+          path: ${{ runner.temp }}/downloaded-block
+      - name: Verify remote artifact content and genuine trace
+        if: always()
+        env:
+          DOWNLOADED: ${{ runner.temp }}/downloaded-block
+        run: |
+          test -s "$DOWNLOADED/browser.png"
+          test -s "$DOWNLOADED/trace.zip"
+          test -s "$DOWNLOADED/report.json"
+          test -s "$DOWNLOADED/report.md"
+          test -s "$DOWNLOADED/agent-feedback.md"
+          test -s "$DOWNLOADED/summary.md"
+          unzip -t "$DOWNLOADED/trace.zip"
+          node -e 'const fs=require("fs");const r=JSON.parse(fs.readFileSync(process.env.DOWNLOADED+"/report.json"));if(r.verdict!=="BLOCK"||!r.failures.some(s=>s.includes("pageerror")))process.exit(1)'
+      - name: Stop fixture server
+        if: always()
+        run: |
+          if test -f "$RUNNER_TEMP/aidonecheck-fixture-pid"; then
+            kill "$(cat "$RUNNER_TEMP/aidonecheck-fixture-pid")" || true
+          fi
