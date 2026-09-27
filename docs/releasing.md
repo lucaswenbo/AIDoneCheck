@@ -24,7 +24,7 @@
 5. docs/releases/<版本>.md 的中文发布说明。
 6. `npm run build` 生成的 dist。
 
-执行 `npm run release:check`，再正常提交 PR。使用 squash 合并，保留有意义的 PR 标题。
+执行 `npm run license:check` 和 `npm run release:check`，再正常提交 PR。发布检查会强制要求根项目、lockfile、README、LICENSE、NOTICE 与打包内容保持 Apache-2.0 一致。使用 squash 合并，保留有意义的 PR 标题。
 
 ## 自动发布验证
 
