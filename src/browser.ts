@@ -6,6 +6,7 @@ import { Check, Config, PLAYWRIGHT_VERSION, StartupError } from './types.js';
 interface Request { url(): string; resourceType(): string; failure(): {errorText:string} | null }
 interface Response { status(): number; url(): string; request(): Request }
 interface ConsoleMessage { type(): string; text(): string }
+interface ResourceFailure {url:string;resourceType:string;status?:number;error?:string}
 interface Page {
   on(event:'pageerror', listener:(e:Error)=>void):void;
   on(event:'console', listener:(m:ConsoleMessage)=>void):void;
@@ -48,18 +49,31 @@ export async function runBrowser(browser:Browser,config:Config['browser'],direct
   const start=performance.now();
   const checks:Check[]=[];
   const failures:string[]=[],warnings:string[]=[],pageErrors:string[]=[],consoleErrors:string[]=[];
-  const resources:{url:string;resourceType:string;status?:number;error?:string}[]=[];
+  const resources:ResourceFailure[]=[];
+  // Bound detailed logs, never the detection of blocking failures. Keep only
+  // origin/count for omitted critical events; final origin is known after navigation.
+  const omittedCriticalByOrigin=new Map<string,number>();
+  let omittedCriticalFailureEvents=0;
   let context:Context|undefined,page:Page|undefined,traceStarted=false;
   let finalUrl='',title='',textLength=0,expectMatched=false,mainStatus:number|null=null,screenshot=false,trace=false,eventsTruncated=false;
   const push=<T>(arr:T[],value:T)=>{if(arr.length<200)arr.push(value);else eventsTruncated=true;};
+  const critical=(type:string)=>['document','script','stylesheet'].includes(type);
+  const recordResource=(resource:ResourceFailure)=>{
+    if(resources.length<200){resources.push(resource);return;}
+    eventsTruncated=true;
+    if(critical(resource.resourceType))try{
+      const origin=new URL(resource.url).origin;
+      omittedCriticalByOrigin.set(origin,(omittedCriticalByOrigin.get(origin)??0)+1);
+    }catch{/* Invalid URLs cannot be classified; truncation is still reported. */}
+  };
   try {
     context=await browser.newContext(config.profile==='mobile'?{viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:3}:{viewport:{width:1440,height:900}});
     if(config.trace!=='off') {try {await context.tracing.start({screenshots:true,snapshots:true,sources:false});traceStarted=true;} catch{warnings.push('Trace recording could not start');}}
     page=await context.newPage();page.setDefaultTimeout(30_000);page.setDefaultNavigationTimeout(30_000);
     page.on('pageerror',e=>push(pageErrors,bounded(e.message)));
     page.on('console',m=>{if(m.type()==='error')push(consoleErrors,bounded(m.text()));});
-    page.on('requestfailed',r=>push(resources,{url:r.url(),resourceType:r.resourceType(),error:bounded(r.failure()?.errorText??'request failed')}));
-    page.on('response',r=>{if(r.status()>=400)push(resources,{url:r.url(),resourceType:r.request().resourceType(),status:r.status()});});
+    page.on('requestfailed',r=>recordResource({url:r.url(),resourceType:r.resourceType(),error:bounded(r.failure()?.errorText??'request failed')}));
+    page.on('response',r=>{if(r.status()>=400)recordResource({url:r.url(),resourceType:r.request().resourceType(),status:r.status()});});
     try {
       const response=await page.goto(config.url,{waitUntil:'load',timeout:30_000});
       mainStatus=response?.status()??null;
@@ -90,11 +104,12 @@ export async function runBrowser(browser:Browser,config:Config['browser'],direct
     if(consoleErrors.length) (config.failConsole?failures:warnings).push(...consoleErrors.map(e=>`console.error: ${e}`));
     let finalOrigin='';try{finalOrigin=new URL(finalUrl).origin;}catch{/* navigation already failed */}
     for(const resource of resources) {
-      const critical=['document','script','stylesheet'].includes(resource.resourceType);
       let same=false;try{same=new URL(resource.url).origin===finalOrigin;}catch{/* malformed resource URL */}
       const detail=`${resource.resourceType} ${resource.status?`HTTP ${resource.status}`:resource.error}: ${resource.url}`;
-      if(critical && same)failures.push(detail);else warnings.push(detail);
+      if(critical(resource.resourceType) && same)failures.push(detail);else warnings.push(detail);
     }
+    omittedCriticalFailureEvents=omittedCriticalByOrigin.get(finalOrigin)??0;
+    if(omittedCriticalFailureEvents)failures.push(`Same-origin critical resource failure events omitted from detailed evidence: ${omittedCriticalFailureEvents} (document/script/stylesheet)`);
     if(eventsTruncated)warnings.push('Browser event list truncated after 200 entries per category');
     if(context && traceStarted) {
       try {
@@ -104,7 +119,7 @@ export async function runBrowser(browser:Browser,config:Config['browser'],direct
     }
     if(context)await context.close().catch(()=>warnings.push('Browser context cleanup failed'));
   }
-  checks.push({id:'browser',status:failures.length?'fail':warnings.length?'warn':'pass',blocking:failures.length>0,meaningful:true,details:failures.length?failures.join('; '):warnings.length?warnings.join('; '):'Chromium navigation, runtime and rendered content checks passed',data:{finalUrl,title,mainStatus,textLength,expectMatched,profile:config.profile,pageErrors,consoleErrors,resources,failures,warnings,screenshot,trace,durationMs:Math.round(performance.now()-start)}});
+  checks.push({id:'browser',status:failures.length?'fail':warnings.length?'warn':'pass',blocking:failures.length>0,meaningful:true,details:failures.length?failures.join('; '):warnings.length?warnings.join('; '):'Chromium navigation, runtime and rendered content checks passed',data:{finalUrl,title,mainStatus,textLength,expectMatched,profile:config.profile,pageErrors,consoleErrors,resources,omittedCriticalFailureEvents,failures,warnings,screenshot,trace,durationMs:Math.round(performance.now()-start)}});
   // Preserve nonblocking gaps even when the Browser check is blocking.
   if(failures.length && warnings.length)checks.push({id:'browser-warnings',status:'warn',blocking:false,meaningful:false,details:warnings.join('; ')});
   return checks;

@@ -1,6 +1,6 @@
 import {execFileSync} from 'node:child_process';
 import fs from 'node:fs/promises';
-export const requiredWorkflows=['Test','Browser smoke','Action smoke'];
+export const requiredWorkflows=['Test','Browser smoke','Action smoke','AIDoneCheck 可复现演示'];
 export function releaseGate(runs,sha,repository){
   return requiredWorkflows.map(name=>{
     const candidates=runs.filter(r=>r.name===name && r.head_sha===sha && r.head_branch==='main' && r.event==='push' && r.head_repository?.full_name?.toLowerCase()===repository.toLowerCase());

@@ -1,7 +1,7 @@
 name: Publish verified release
 on:
   workflow_run:
-    workflows: [Test, Browser smoke, Action smoke]
+    workflows: [Test, Browser smoke, Action smoke, AIDoneCheck 可复现演示]
     types: [completed]
     branches: [main]
   workflow_dispatch:
@@ -63,7 +63,7 @@ jobs:
       - run: node scripts/action-fixture.mjs .smoke
       - name: Consume fixed published Action exactly as users do
         id: fixed
-        uses: lucaswenbo/AIDoneCheck@v1.0.0
+        uses: lucaswenbo/AIDoneCheck@v1.0.1
         with:
           working-directory: .smoke
           base: main

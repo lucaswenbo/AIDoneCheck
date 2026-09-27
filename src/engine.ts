@@ -30,6 +30,8 @@ export async function check(options:RunOptions={}):Promise<Report> {
   let target;
   try {
     const scriptChecks=await runScripts(repo.root,config,discovery,options.scriptTimeoutMs);
+    // A project script can replace a previously safe/missing path with a symlink.
+    await validatePaths(repo.root,config);
     // Scripts may create, restore or delete files. Report the verified final state.
     const git=await collectGit(repo.root,gitOptions);
     const finalRepo=await repository(repo.root);
