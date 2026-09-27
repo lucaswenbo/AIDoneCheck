@@ -13,7 +13,7 @@ export async function startFixtures(port=0){
     if(route==='/style-fail'){html('<link rel="stylesheet" href="/missing.css"><h1>Ready</h1>');return;}
     if(route==='/http-error'){res.statusCode=503;html('<h1>Service unavailable fixture</h1>');return;}
     if(route==='/cross-fail'){html(`<h1>Ready</h1><script src="${peerURL}/missing.js"></script>`);return;}
-    if(route==='/resource-overflow'){html('<h1>Ready</h1>'+Array.from({length:205},(_,i)=>`<script src="${peerURL}/missing.js?n=${i}"></script>`).join('')+'<script src="/missing.js?critical=last"></script>');return;}
+    if(route==='/resource-overflow'){html('<h1>Ready</h1>'+Array.from({length:205},(_,i)=>`<script src="${peerURL}/missing.js?n=${i}"></script>`).join('')+'<script>const last=document.createElement("script");last.src="/missing.js?critical=last";document.body.append(last);</script>');return;}
     if(route==='/console'){html('<h1>Ready</h1><script>console.error("fixture console error")</script>');return;}
     if(route==='/empty'){html('');return;}
     if(route==='/hidden'){html('<p hidden>SECRET_EXPECT</p><p>Ready</p>');return;}
