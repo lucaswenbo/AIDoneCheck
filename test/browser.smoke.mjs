@@ -13,6 +13,7 @@ const cases=[
   ['style-fail','/style-fail','BLOCK',{}],
   ['http-error','/http-error','BLOCK',{}],
   ['cross-fail','/cross-fail','WARN',{}],
+  ['resource-overflow','/resource-overflow','BLOCK',{}],
   ['console-warn','/console','WARN',{}],
   ['console-block','/console','BLOCK',{failConsole:true}],
   ['expect-missing','/pass','BLOCK',{expect:'absent substring'}],
@@ -37,6 +38,7 @@ for(const [name,route,expected,extra] of cases)test(`Browser ${name}: ${expected
   assert.equal(r.evidence.files.includes('trace.zip'),keep);
   if(keep){const trace=await fs.readFile(path.join(dir,'trace.zip'));assert.equal(trace.subarray(0,2).toString(),'PK');const entries=execFileSync('unzip',['-Z1',path.join(dir,'trace.zip')],{encoding:'utf8'});assert(entries.includes('.trace'));assert(entries.includes('.network'));}
   if(name==='pageerror'){assert((await fs.readFile(path.join(dir,'agent-feedback.md'),'utf8')).includes('fixture pageerror'));}
+  if(name==='resource-overflow'){const data=r.checks.find(c=>c.id==='browser').data;assert.equal(data.resources.length,200);assert(data.omittedCriticalFailureEvents>0);assert(data.failures.some(s=>s.includes('omitted from detailed evidence')));}
   if(process.env.AIDONECHECK_SMOKE_EVIDENCE)await fs.cp(await fs.realpath(dir),path.join(process.env.AIDONECHECK_SMOKE_EVIDENCE,name),{recursive:true});
 });
 test('Browser unreachable URL BLOCK with screenshot and trace',async t=>{const {root}=await fixture(t,{});const r=await check({event:{name:'fixture',payload:{}},cwd:root,config:parseConfig(quietConfig({browser:{enabled:true,url:'http://127.0.0.1:1',trace:'on-failure'}}))});assert.equal(r.verdict,'BLOCK');assert(r.evidence.files.includes('browser.png'));assert(r.evidence.files.includes('trace.zip'));});

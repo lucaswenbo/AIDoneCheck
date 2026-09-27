@@ -3,3 +3,4 @@ node_modules/
 .build/
 .browser-runtime/
 *.tgz
+.demo/

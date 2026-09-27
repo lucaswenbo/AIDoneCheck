@@ -1,6 +1,6 @@
 # AIDoneCheck 发布说明
 
-用户应优先使用固定版本 `v1.0.0`；希望自动跟随兼容更新时使用 `v1`。`main` 是开发分支。具体版本 tag 按流程不移动；浮动主版本 tag 只指向已发布的稳定版本。仓库是否强制禁止修改 tag，取决于另外配置的 GitHub 规则，不应混为一谈。
+用户应优先使用固定版本 `v1.0.1`；希望自动跟随兼容更新时使用 `v1`。`main` 是开发分支。具体版本 tag 按流程不移动；浮动主版本 tag 只指向已发布的稳定版本。仓库是否强制禁止修改 tag，取决于另外配置的 GitHub 规则，不应混为一谈。
 
 ## 当前发布方式
 
@@ -28,11 +28,11 @@
 
 ## 自动发布验证
 
-`.github/workflows/release.yml` 在 main 的 Test、Browser smoke、Action smoke 完成后运行。三条工作流必须全部是**同一个 main commit 的成功 push run**；PR/fork 的成功结果不能冒充。重跑时以最新 run 为准。
+`.github/workflows/release.yml` 在 main 的 Test、Browser smoke、Action smoke、AIDoneCheck 可复现演示 完成后运行。四条工作流必须全部是**同一个 main commit 的成功 push run**；PR/fork 的成功结果不能冒充。重跑时以最新 run 为准。
 
 发布程序会：
 
-1. 核对 checkout SHA、当前远程 main SHA、三条 CI 的 SHA 和结果。
+1. 核对 checkout SHA、当前远程 main SHA、四条 CI 的 SHA 和结果。
 2. 核对 package、lockfile、源代码、CLI dist、CHANGELOG 与发布说明版本。
 3. 打包 CLI，在独立目录实际安装，验证 PASS、真实测试失败 BLOCK 和报告保留。
 4. 再核对 main 未前移，创建固定 tag 和 Draft Release。
@@ -46,7 +46,7 @@
 
 ## 首次发布与重试
 
-合并包含本工作流的版本 PR 后，main 上三条 CI 全绿即可自动首发，无需新建 Secrets。
+合并包含本工作流的版本 PR 后，main 上四条 CI 全绿即可自动发布，无需新建 Secrets。
 
 如果遇到网络等基础设施故障，可在 GitHub Actions 的 **Publish verified release** 手动 Run workflow，分支选 main。它仍执行同样的验证，不允许手动绕过。
 

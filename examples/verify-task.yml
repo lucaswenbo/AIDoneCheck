@@ -21,6 +21,6 @@ jobs:
       - run: npm ci
       - name: 验收并保存证据
         id: verify
-        uses: lucaswenbo/AIDoneCheck@v1.0.0
+        uses: lucaswenbo/AIDoneCheck@v1.0.1
         with:
           fail-on-warn: 'false'

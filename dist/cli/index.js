@@ -3,7 +3,7 @@ import fs8 from "node:fs/promises";
 import path5 from "node:path";
 
 // src/types.ts
-var VERSION = "1.0.0";
+var VERSION = "1.0.1";
 var PLAYWRIGHT_VERSION = "1.63.0";
 var StartupError = class extends Error {
   name = "StartupError";
@@ -411,11 +411,26 @@ async function runBrowser(browser, config, directory) {
   const checks = [];
   const failures = [], warnings = [], pageErrors = [], consoleErrors = [];
   const resources = [];
+  const omittedCriticalByOrigin = /* @__PURE__ */ new Map();
+  let omittedCriticalFailureEvents = 0;
   let context, page, traceStarted = false;
   let finalUrl = "", title = "", textLength = 0, expectMatched = false, mainStatus = null, screenshot = false, trace = false, eventsTruncated = false;
   const push = (arr, value) => {
     if (arr.length < 200) arr.push(value);
     else eventsTruncated = true;
+  };
+  const critical = (type) => ["document", "script", "stylesheet"].includes(type);
+  const recordResource = (resource) => {
+    if (resources.length < 200) {
+      resources.push(resource);
+      return;
+    }
+    eventsTruncated = true;
+    if (critical(resource.resourceType)) try {
+      const origin = new URL(resource.url).origin;
+      omittedCriticalByOrigin.set(origin, (omittedCriticalByOrigin.get(origin) ?? 0) + 1);
+    } catch {
+    }
   };
   try {
     context = await browser.newContext(config.profile === "mobile" ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 } : { viewport: { width: 1440, height: 900 } });
@@ -434,9 +449,9 @@ async function runBrowser(browser, config, directory) {
     page.on("console", (m) => {
       if (m.type() === "error") push(consoleErrors, bounded(m.text()));
     });
-    page.on("requestfailed", (r) => push(resources, { url: r.url(), resourceType: r.resourceType(), error: bounded(r.failure()?.errorText ?? "request failed") }));
+    page.on("requestfailed", (r) => recordResource({ url: r.url(), resourceType: r.resourceType(), error: bounded(r.failure()?.errorText ?? "request failed") }));
     page.on("response", (r) => {
-      if (r.status() >= 400) push(resources, { url: r.url(), resourceType: r.request().resourceType(), status: r.status() });
+      if (r.status() >= 400) recordResource({ url: r.url(), resourceType: r.request().resourceType(), status: r.status() });
     });
     try {
       const response = await page.goto(config.url, { waitUntil: "load", timeout: 3e4 });
@@ -479,16 +494,17 @@ async function runBrowser(browser, config, directory) {
     } catch {
     }
     for (const resource of resources) {
-      const critical = ["document", "script", "stylesheet"].includes(resource.resourceType);
       let same = false;
       try {
         same = new URL(resource.url).origin === finalOrigin;
       } catch {
       }
       const detail = `${resource.resourceType} ${resource.status ? `HTTP ${resource.status}` : resource.error}: ${resource.url}`;
-      if (critical && same) failures.push(detail);
+      if (critical(resource.resourceType) && same) failures.push(detail);
       else warnings.push(detail);
     }
+    omittedCriticalFailureEvents = omittedCriticalByOrigin.get(finalOrigin) ?? 0;
+    if (omittedCriticalFailureEvents) failures.push(`Same-origin critical resource failure events omitted from detailed evidence: ${omittedCriticalFailureEvents} (document/script/stylesheet)`);
     if (eventsTruncated) warnings.push("Browser event list truncated after 200 entries per category");
     if (context && traceStarted) {
       try {
@@ -501,7 +517,7 @@ async function runBrowser(browser, config, directory) {
     }
     if (context) await context.close().catch(() => warnings.push("Browser context cleanup failed"));
   }
-  checks.push({ id: "browser", status: failures.length ? "fail" : warnings.length ? "warn" : "pass", blocking: failures.length > 0, meaningful: true, details: failures.length ? failures.join("; ") : warnings.length ? warnings.join("; ") : "Chromium navigation, runtime and rendered content checks passed", data: { finalUrl, title, mainStatus, textLength, expectMatched, profile: config.profile, pageErrors, consoleErrors, resources, failures, warnings, screenshot, trace, durationMs: Math.round(performance.now() - start) } });
+  checks.push({ id: "browser", status: failures.length ? "fail" : warnings.length ? "warn" : "pass", blocking: failures.length > 0, meaningful: true, details: failures.length ? failures.join("; ") : warnings.length ? warnings.join("; ") : "Chromium navigation, runtime and rendered content checks passed", data: { finalUrl, title, mainStatus, textLength, expectMatched, profile: config.profile, pageErrors, consoleErrors, resources, omittedCriticalFailureEvents, failures, warnings, screenshot, trace, durationMs: Math.round(performance.now() - start) } });
   if (failures.length && warnings.length) checks.push({ id: "browser-warnings", status: "warn", blocking: false, meaningful: false, details: warnings.join("; ") });
   return checks;
 }
@@ -639,6 +655,7 @@ async function check(options = {}) {
   let target;
   try {
     const scriptChecks = await runScripts(repo.root, config, discovery, options.scriptTimeoutMs);
+    await validatePaths(repo.root, config);
     const git2 = await collectGit(repo.root, gitOptions);
     const finalRepo = await repository(repo.root);
     target = await prepareEvidence(repo.root, options.evidenceDirectory);

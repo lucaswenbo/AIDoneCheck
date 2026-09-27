@@ -1,6 +1,6 @@
 {
   "name": "aidonecheck",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "AI says done. AIDoneCheck checks deterministic verification evidence.",
   "type": "module",
   "bin": {

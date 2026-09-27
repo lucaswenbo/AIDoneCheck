@@ -1,0 +1,14 @@
+{
+  "name": "aidonecheck-public-demo-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "typecheck": "tsc --noEmit",
+    "build": "node scripts/build.mjs"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}

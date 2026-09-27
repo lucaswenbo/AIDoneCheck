@@ -16,15 +16,17 @@ Codex、Claude Code、Cursor、Copilot 或其他 Coding Agent 写完代码后，
 [![Test](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/test.yml/badge.svg)](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/test.yml)
 [![Action smoke](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/action-smoke.yml/badge.svg)](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/action-smoke.yml)
 [![Browser smoke](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/browser-smoke.yml/badge.svg)](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/browser-smoke.yml)
-[![版本](https://img.shields.io/badge/version-v1.0.0-2563eb)](https://github.com/lucaswenbo/AIDoneCheck/releases/tag/v1.0.0)
+[![版本](https://img.shields.io/badge/version-v1.0.1-2563eb)](https://github.com/lucaswenbo/AIDoneCheck/releases/tag/v1.0.1)
 [![MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 
 ## 30 秒开始使用
 
+**先看它真实跑一次：** [打开六场景演示](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/demo.yml) · [点击复现步骤](docs/demo.md)。无需你的网站或 Secrets；访客先 Fork 后即可 Run workflow。演示覆盖 PASS、WARN、真实 BLOCK 和路径错误，并下载验证每份 Evidence。
+
 **推荐先在 GitHub Actions 接入。** 下面是工作流中的一个 step，不是终端命令；在你要验收的项目中，完成 checkout 和项目依赖安装后添加：
 
 ```yaml
-- uses: lucaswenbo/AIDoneCheck@v1.0.0
+- uses: lucaswenbo/AIDoneCheck@v1.0.1
   id: verify
 ```
 
@@ -34,11 +36,11 @@ Codex、Claude Code、Cursor、Copilot 或其他 Coding Agent 写完代码后，
 
 > 默认检查 test、lint、typecheck、build。没有配置的脚本会 WARN；只有真实失败才 BLOCK。没有任何有意义验证不会 PASS。你可以按项目实际能力配置检查，但不要为变绿而关闭本来应该通过的检查。
 
-### 我应该用 v1.0.0、v1 还是 main？
+### 我应该用 v1.0.1、v1 还是 main？
 
 | 选择 | 行为 | 建议 |
 |---|---|---|
-| `@v1.0.0` | 固定本次已发布版本；按发布流程不移动 | **普通用户默认推荐**，升级时主动改版本 |
+| `@v1.0.1` | 固定本次已发布版本；按发布流程不移动 | **普通用户默认推荐**，升级时主动改版本 |
 | `@v1` | 跟随经过发布验证的最新 1.x 稳定版 | 接受兼容更新的项目 |
 | 完整 commit SHA | 锁定具体代码 | 对供应链锁定要求较高的团队；从对应 Release 获取 SHA |
 | `@main` | 最新开发代码，可能尚未发布 | 仅开发、试验和贡献，不作为生产默认引用 |
@@ -51,7 +53,7 @@ Codex、Claude Code、Cursor、Copilot 或其他 Coding Agent 写完代码后，
 需要 Node.js >=20、npm、Git。可以直接安装版本固定的 CLI 附件：
 
 ```bash
-npm install --global https://github.com/lucaswenbo/AIDoneCheck/releases/download/v1.0.0/aidonecheck-1.0.0.tgz
+npm install --global https://github.com/lucaswenbo/AIDoneCheck/releases/download/v1.0.1/aidonecheck-1.0.1.tgz
 aidonecheck --version
 ```
 
@@ -70,7 +72,7 @@ aidonecheck report
 **CLI 没有发布到 npm registry**，不要直接使用裸 `npx aidonecheck`。这里使用的是本仓库 Release 附件；可下载同页的 SHA256SUMS.txt 检查文件摘要。也可以 clone 固定 tag 后使用 `node ./bin/aidonecheck.mjs`，不需要为运行 CLI 安装本工具的开发依赖：
 
 ```bash
-git clone --branch v1.0.0 --depth 1 https://github.com/lucaswenbo/AIDoneCheck.git
+git clone --branch v1.0.1 --depth 1 https://github.com/lucaswenbo/AIDoneCheck.git
 node ./AIDoneCheck/bin/aidonecheck.mjs --help
 ```
 
@@ -253,7 +255,7 @@ Trace 为 AIDoneCheck 自定义保留规则，通过真实 Playwright tracing AP
   trace.zip         # 按保留规则生成
 ```
 
-`report.json` 使用独立 `version: "1.0.0"` 和 `schemaVersion: 1`，包含 verdict、repository、git、checks、warnings、failures、evidence。Markdown 显示分支、HEAD、base、changed files、结果和证据位置。
+`report.json` 使用独立 `version: "1.0.1"` 和 `schemaVersion: 1`，包含 verdict、repository、git、checks、warnings、failures、evidence。Markdown 显示分支、HEAD、base、changed files、结果和证据位置。
 
 本地先在临时目录写完整报告，再保存到 `.aidonecheck/runs/<unique-id>`，最后以原子替换的 latest 链接发布。并发运行拥有独立目录，读者不会读到半份报告；旧 run 保留以免正在读取的报告消失，可自行清理。首次迁移已有普通 latest 目录时会先备份、失败回滚。GitHub Action 每次调用在 runner temp 创建独立 Evidence，Artifact 名包含 run、attempt 和 UUID。
 
@@ -279,7 +281,7 @@ AI writes → AI says “done” → AIDoneCheck → Evidence → Agent fixes �
 
 JavaScript Action 使用 **node24** 和自包含 `dist/action/index.js`；不依赖调用者安装 AIDoneCheck dependencies。CLI 支持 Node >=20，CI 覆盖 Node 20/24。Playwright 仅在配置启用 Browser 时准备，版本固定，独立安装到 runner temp；不修改调用者的 package.json、package-lock 或 node_modules。
 
-推荐固定已发布版本 `@v1.0.0`。`@v1` 自动跟随 1.x，`@main` 仅供开发。下面是可以复制到你自己项目的完整工作流：
+推荐固定已发布版本 `@v1.0.1`。`@v1` 自动跟随 1.x，`@main` 仅供开发。下面是可以复制到你自己项目的完整工作流：
 
 ```yaml
 name: AIDoneCheck
@@ -299,7 +301,7 @@ jobs:
           node-version: 24
       - run: npm ci
       # 如启用 Browser，请在这里自行启动应用并等待 ready
-      - uses: lucaswenbo/AIDoneCheck@v1.0.0
+      - uses: lucaswenbo/AIDoneCheck@v1.0.1
         id: verify
         with:
           fail-on-warn: 'false'
@@ -369,7 +371,7 @@ npm run test:browser
 
 Browser smoke 只使用本地 fixture server，覆盖 PASS、pageerror、同源请求失败、stylesheet/main document 错误、跨源失败、console 策略、expect、空页面、截图和真实 trace。Action smoke 在没有 npm ci 的调用方环境运行 `uses: ./`，故意制造 BLOCK，再下载并检查 Artifact；**被测 Action 正确失败、Evidence 保留、整个 smoke workflow 成功**才算通过。
 
-测试覆盖 Demo A（健康项目 PASS）、Demo B（真实断言失败 BLOCK 并保留报告）、Demo C（pageerror BLOCK 并保留截图/Trace/报告）。main 的三条 CI 必须验证同一个提交并全部通过，发布程序还会独立安装实际 CLI 包再创建稳定 Release。见 [维护者发布说明](docs/releasing.md)。不以尚未运行的测试作完成声明。
+测试覆盖 Demo A（健康项目 PASS）、Demo B（真实断言失败 BLOCK 并保留报告）、Demo C（pageerror BLOCK 并保留截图/Trace/报告）。main 的四条 CI（含可复现演示） 必须验证同一个提交并全部通过，发布程序还会独立安装实际 CLI 包再创建稳定 Release。见 [维护者发布说明](docs/releasing.md)。不以尚未运行的测试作完成声明。
 
 ## MIT
 
