@@ -17,7 +17,7 @@ Codex、Claude Code、Cursor、Copilot 或其他 Coding Agent 写完代码后，
 [![Action smoke](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/action-smoke.yml/badge.svg)](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/action-smoke.yml)
 [![Browser smoke](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/browser-smoke.yml/badge.svg)](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/browser-smoke.yml)
 [![版本](https://img.shields.io/badge/version-v1.0.2-2563eb)](https://github.com/lucaswenbo/AIDoneCheck/releases/tag/v1.0.2)
-[![MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
+[![Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-16a34a)](LICENSE)
 
 ## 30 秒开始使用
 
@@ -379,9 +379,9 @@ Browser smoke 只使用本地 fixture server，覆盖 PASS、pageerror、同源�
 
 测试覆盖 Demo A（健康项目 PASS）、Demo B（真实断言失败 BLOCK 并保留报告）、Demo C（pageerror BLOCK 并保留截图/Trace/报告）。main 的四条 CI（含可复现演示） 必须验证同一个提交并全部通过，发布程序还会独立安装实际 CLI 包再创建稳定 Release。见 [维护者发布说明](docs/releasing.md)。不以尚未运行的测试作完成声明。
 
-## MIT
+## License
 
-本项目采用 [MIT License](LICENSE)。打包依赖的许可证声明保留于 dist；设计参考不构成与 ProdDoctor 的运行时耦合。
+本项目采用 [Apache License 2.0](LICENSE)，版权归属信息见 [NOTICE](NOTICE)。打包依赖的第三方许可证声明继续保留于 dist；设计参考不构成与 ProdDoctor 的运行时耦合。
 
 ## 问题反馈
 

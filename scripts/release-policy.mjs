@@ -1,5 +1,6 @@
 import {execFileSync} from 'node:child_process';
 import fs from 'node:fs/promises';
+import {checkLicense} from './check-license.mjs';
 export const requiredWorkflows=['Test','Browser smoke','Action smoke','AIDoneCheck 可复现演示'];
 export function releaseGate(runs,sha,repository){
   return requiredWorkflows.map(name=>{
@@ -10,6 +11,7 @@ export function releaseGate(runs,sha,repository){
   });
 }
 export async function checkVersion(root=process.cwd()){
+  await checkLicense(root);
   const pkg=JSON.parse(await fs.readFile(`${root}/package.json`,'utf8'));
   if(!/^\d+\.\d+\.\d+$/.test(pkg.version))throw new Error('Only stable semantic versions may be published');
   const source=await fs.readFile(`${root}/src/types.ts`,'utf8');
