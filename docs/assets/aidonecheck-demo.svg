@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600" role="img" aria-labelledby="title desc">
+  <title id="title">AIDoneCheck demo</title>
+  <desc id="desc">An AI coding agent says the task is done, then AIDoneCheck blocks it because evidence shows a missing test and failed build.</desc>
+  <rect width="1200" height="600" rx="28" fill="#0d1117"/>
+  <rect x="38" y="38" width="1124" height="524" rx="20" fill="#161b22" stroke="#30363d" stroke-width="2"/>
+  <text x="76" y="92" fill="#f0f6fc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="24" font-weight="700">AIDoneCheck · verify the “done”</text>
+  <circle cx="1084" cy="82" r="8" fill="#3fb950"/><circle cx="1112" cy="82" r="8" fill="#d29922"/><circle cx="1140" cy="82" r="8" fill="#f85149"/>
+
+  <g opacity="0">
+    <animate attributeName="opacity" values="0;1;1;1;0" keyTimes="0;0.06;0.30;0.92;1" dur="7s" repeatCount="indefinite"/>
+    <rect x="76" y="130" width="500" height="150" rx="18" fill="#21262d" stroke="#30363d"/>
+    <text x="104" y="169" fill="#8b949e" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="19">AI CODING AGENT</text>
+    <text x="104" y="215" fill="#f0f6fc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="27" font-weight="700">“Task completed.”</text>
+    <text x="104" y="250" fill="#3fb950" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="21">✓ Login feature implemented</text>
+  </g>
+
+  <g opacity="0">
+    <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.28;0.38;0.92;1" dur="7s" repeatCount="indefinite"/>
+    <path d="M602 205 H692" stroke="#8b949e" stroke-width="4" stroke-linecap="round"/>
+    <path d="M678 191 L694 205 L678 219" fill="none" stroke="#8b949e" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="610" y="180" fill="#8b949e" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16">verify</text>
+  </g>
+
+  <g opacity="0">
+    <animate attributeName="opacity" values="0;0;0;1;1;0" keyTimes="0;0.38;0.40;0.48;0.92;1" dur="7s" repeatCount="indefinite"/>
+    <rect x="720" y="130" width="404" height="330" rx="18" fill="#0d1117" stroke="#30363d"/>
+    <text x="748" y="169" fill="#8b949e" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="19">$ aidonecheck check</text>
+    <text x="748" y="220" fill="#3fb950" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20">✓ diff found expected changes</text>
+    <text x="748" y="259" fill="#3fb950" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20">✓ lint passed</text>
+    <g opacity="0">
+      <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.55;0.62;0.92;1" dur="7s" repeatCount="indefinite"/>
+      <text x="748" y="298" fill="#f85149" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20">✗ auth.test.ts missing</text>
+      <text x="748" y="337" fill="#f85149" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20">✗ build failed</text>
+    </g>
+    <g opacity="0">
+      <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.69;0.76;0.92;1" dur="7s" repeatCount="indefinite"/>
+      <rect x="748" y="366" width="174" height="48" rx="10" fill="#3d1117" stroke="#f85149"/>
+      <text x="770" y="398" fill="#ff7b72" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="23" font-weight="700">BLOCK</text>
+      <text x="748" y="442" fill="#8b949e" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17">Evidence → .aidonecheck/latest</text>
+    </g>
+  </g>
+
+  <g opacity="0">
+    <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.74;0.82;0.92;1" dur="7s" repeatCount="indefinite"/>
+    <text x="76" y="510" fill="#f0f6fc" font-family="ui-sans-serif, system-ui, sans-serif" font-size="28" font-weight="700">AI says “done.” AIDoneCheck checks.</text>
+  </g>
+</svg>

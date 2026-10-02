@@ -1,23 +1,60 @@
 # AIDoneCheck
 
-AI 说“完成了”。  
-AIDoneCheck 检查证据。
+## AI 说“完成了”。但它真的完成了吗？
 
-AIDoneCheck 是 AI Coding Agent 完成代码任务后的确定性验收工具。
+**AIDoneCheck 是 AI Coding Agent 的确定性验收层。**
 
-Codex、Claude Code、Cursor、Copilot 或其他 Coding Agent 写完代码后，
-它会真正运行 Git diff、测试、类型检查、构建和可选 Browser Check，
-然后输出：
+Codex、Claude Code、Cursor、Copilot 或其他 Coding Agent 写完代码后，AIDoneCheck 不相信一句 “Done”。它检查真实证据：
+
+**代码真的改了吗？测试真的过了吗？构建真的成功了吗？必要文件真的存在吗？网页真的能跑吗？**
+
+然后只给出三种结果：
 
 **PASS / WARN / BLOCK**
-
-以及人类和 Agent 都能读取的 Evidence。
 
 [![Test](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/test.yml/badge.svg)](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/test.yml)
 [![Action smoke](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/action-smoke.yml/badge.svg)](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/action-smoke.yml)
 [![Browser smoke](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/browser-smoke.yml/badge.svg)](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/browser-smoke.yml)
 [![版本](https://img.shields.io/badge/version-v1.0.2-2563eb)](https://github.com/lucaswenbo/AIDoneCheck/releases/tag/v1.0.2)
 [![Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-16a34a)](LICENSE)
+
+<p align="center">
+  <img src="docs/assets/aidonecheck-demo.svg" alt="AI Agent says task completed, but AIDoneCheck finds missing tests and a failed build and returns BLOCK" width="100%">
+</p>
+
+> **AI says "done." AIDoneCheck checks.**
+
+### AI 写代码越来越快，真正稀缺的是“可以相信的完成”
+
+传统工作流里，人写代码，人验收。
+
+AI Coding Agent 出现以后，写代码这一步正在被极度加速，但最后常常还是回到同一个问题：
+
+```text
+AI Agent
+  ↓
+“Task completed.”
+  ↓
+你真的信吗？
+  ↓
+重新检查 diff、测试、构建、文件和页面
+```
+
+AIDoneCheck 把最后这一步变成可重复、可记录、可交给 CI 的确定性流程：
+
+```text
+AI Agent 写代码
+        ↓
+AIDoneCheck 验收
+        ↓
+真实 Evidence
+        ↓
+PASS / WARN / BLOCK
+```
+
+它不是“让另一个 AI 再看一遍”。
+
+**它运行真实检查，记录真实结果，再让人和 Agent 都能读取同一份证据。**
 
 ## 30 秒开始使用
 
@@ -78,19 +115,23 @@ node ./AIDoneCheck/bin/aidonecheck.mjs --help
 
 没有 `.aidonecheck.json` 也可直接 check，它使用默认配置。建议手动把 `.aidonecheck/` 加入你的 `.gitignore`；工具不会自动修改它。
 
-## 是什么，为什么需要它
+## 为什么不是普通 CI？
 
-AI 的“已完成”是一个声明。AIDoneCheck 把它转成能核对的事实：
+CI 能运行命令，但它并不知道这次 AI 任务到底应该“完成什么”。
 
-- Git 的 committed、staged、unstaged、untracked 实际改变了哪些文件。
-- 指定文件是否真的存在、指定修改是否真的发生。
-- 项目已有的 test、lint、typecheck / check-types、build 是否真正执行并通过。
-- 可选 Chromium 是否能打开应用，渲染文本、运行时和关键资源是否符合要求。
-- 为什么通过、哪些真实证据阻断、下一轮还要验证什么。
+AIDoneCheck 把 **任务完成条件** 放进验收流程：
 
-核心传播语：**AI says "done." AIDoneCheck checks.**
+- Git 的 committed、staged、unstaged、untracked 到底改了哪些文件。
+- 指定文件是否真的出现，指定路径是否真的发生修改。
+- test、lint、typecheck / check-types、build 是否真正执行并通过。
+- 可选 Chromium 是否能打开应用，关键文本、运行时错误和资源是否符合要求。
+- 为什么通过、为什么阻断，以及下一轮 Agent 还需要处理什么。
 
-它不是 AI Code Reviewer：不阅读语义后让模型打分，不调用 LLM API，不猜测唯一正确修法。它执行配置中的确定性检查，记录结果。你的检查本身是否充分，仍由你决定。
+所以它检查的不是“代码看起来好不好”，而是：
+
+> **这次 AI Coding 任务，有没有足够证据证明它真的完成了？**
+
+AIDoneCheck 不调用 LLM，不让模型给模型打分，也不猜测唯一正确修法。它只执行你定义的确定性检查并保存 Evidence。
 
 ## 结果和退出码
 
