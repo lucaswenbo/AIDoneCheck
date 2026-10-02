@@ -85,18 +85,9 @@ PASS / WARN / BLOCK
 
 查看 [最新 Release](https://github.com/lucaswenbo/AIDoneCheck/releases/latest)。需要回退时切换到之前的固定版本；不要让 `v1` 或 main 承担固定版本的含义。
 
-### 本地 CLI：npm 或 Release 二选一
+### 本地 CLI：一行安装
 
-需要 Node.js >=20、npm、Git。推荐从 npm 安装固定版本：
-
-```bash
-npm install --global aidonecheck@1.0.3
-aidonecheck --version
-```
-
-不全局安装也可执行：`npx --yes aidonecheck@1.0.3 --help`。需要升级时主动修改版本号。
-
-**原有 GitHub Release 安装方式继续保留**，包含同一份 CLI 安装包和 SHA256SUMS.txt：
+需要 Node.js >=20、npm、Git。在终端复制以下命令，从已验证的 GitHub Release 安装固定版本，无需 clone 或构建源码：
 
 ```bash
 npm install --global https://github.com/lucaswenbo/AIDoneCheck/releases/download/v1.0.3/aidonecheck-1.0.3.tgz
@@ -115,7 +106,7 @@ aidonecheck report
 
 如果仓库没有 `origin/main`，将 base 换成真实的默认分支，例如 `origin/master`。也可省略 base，由工具按文档发现可靠默认分支；不会猜一个空 diff。
 
-npm 包名为 `aidonecheck`，源码位于本仓库；npm 与 Release 使用完全相同的安装包。推荐带明确版本，避免安装入口随 latest 变化。Release 附件可下载同页的 SHA256SUMS.txt 检查文件摘要。也可以 clone 固定 tag 后使用 `node ./bin/aidonecheck.mjs`，不需要为运行 CLI 安装本工具的开发依赖：
+上面的 npm 命令直接安装 GitHub Release 附件；**npm registry 分发暂缓，包名安装和 npx 包名入口尚不可用**。需要升级时主动修改版本号。Release 附件可下载同页的 SHA256SUMS.txt 检查文件摘要。也可以 clone 固定 tag 后使用 `node ./bin/aidonecheck.mjs`，不需要为运行 CLI 安装本工具的开发依赖：
 
 ```bash
 git clone --branch v1.0.3 --depth 1 https://github.com/lucaswenbo/AIDoneCheck.git
