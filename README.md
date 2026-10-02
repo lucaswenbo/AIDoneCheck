@@ -15,7 +15,7 @@ Codex、Claude Code、Cursor、Copilot 或其他 Coding Agent 写完代码后，
 [![Test](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/test.yml/badge.svg)](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/test.yml)
 [![Action smoke](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/action-smoke.yml/badge.svg)](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/action-smoke.yml)
 [![Browser smoke](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/browser-smoke.yml/badge.svg)](https://github.com/lucaswenbo/AIDoneCheck/actions/workflows/browser-smoke.yml)
-[![版本](https://img.shields.io/badge/version-v1.0.2-2563eb)](https://github.com/lucaswenbo/AIDoneCheck/releases/tag/v1.0.2)
+[![版本](https://img.shields.io/badge/version-v1.0.3-2563eb)](https://github.com/lucaswenbo/AIDoneCheck/releases/tag/v1.0.3)
 [![Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-16a34a)](LICENSE)
 
 <p align="center">
@@ -63,7 +63,7 @@ PASS / WARN / BLOCK
 **推荐先在 GitHub Actions 接入。** 下面是工作流中的一个 step，不是终端命令；在你要验收的项目中，完成 checkout 和项目依赖安装后添加：
 
 ```yaml
-- uses: lucaswenbo/AIDoneCheck@v1.0.2
+- uses: lucaswenbo/AIDoneCheck@v1.0.3
   id: verify
 ```
 
@@ -73,11 +73,11 @@ PASS / WARN / BLOCK
 
 > 默认检查 test、lint、typecheck、build。没有配置的脚本会 WARN；只有真实失败才 BLOCK。没有任何有意义验证不会 PASS。你可以按项目实际能力配置检查，但不要为变绿而关闭本来应该通过的检查。
 
-### 我应该用 v1.0.2、v1 还是 main？
+### 我应该用 v1.0.3、v1 还是 main？
 
 | 选择 | 行为 | 建议 |
 |---|---|---|
-| `@v1.0.2` | 固定本次已发布版本；按发布流程不移动 | **普通用户默认推荐**，升级时主动改版本 |
+| `@v1.0.3` | 固定本次已发布版本；按发布流程不移动 | **普通用户默认推荐**，升级时主动改版本 |
 | `@v1` | 跟随经过发布验证的最新 1.x 稳定版 | 接受兼容更新的项目 |
 | 完整 commit SHA | 锁定具体代码 | 对供应链锁定要求较高的团队；从对应 Release 获取 SHA |
 | `@main` | 最新开发代码，可能尚未发布 | 仅开发、试验和贡献，不作为生产默认引用 |
@@ -85,12 +85,21 @@ PASS / WARN / BLOCK
 
 查看 [最新 Release](https://github.com/lucaswenbo/AIDoneCheck/releases/latest)。需要回退时切换到之前的固定版本；不要让 `v1` 或 main 承担固定版本的含义。
 
-### 本地 CLI：安装公开 Release 下载包
+### 本地 CLI：npm 或 Release 二选一
 
-需要 Node.js >=20、npm、Git。可以直接安装版本固定的 CLI 附件：
+需要 Node.js >=20、npm、Git。推荐从 npm 安装固定版本：
 
 ```bash
-npm install --global https://github.com/lucaswenbo/AIDoneCheck/releases/download/v1.0.2/aidonecheck-1.0.2.tgz
+npm install --global aidonecheck@1.0.3
+aidonecheck --version
+```
+
+不全局安装也可执行：`npx --yes aidonecheck@1.0.3 --help`。需要升级时主动修改版本号。
+
+**原有 GitHub Release 安装方式继续保留**，包含同一份 CLI 安装包和 SHA256SUMS.txt：
+
+```bash
+npm install --global https://github.com/lucaswenbo/AIDoneCheck/releases/download/v1.0.3/aidonecheck-1.0.3.tgz
 aidonecheck --version
 ```
 
@@ -106,10 +115,10 @@ aidonecheck report
 
 如果仓库没有 `origin/main`，将 base 换成真实的默认分支，例如 `origin/master`。也可省略 base，由工具按文档发现可靠默认分支；不会猜一个空 diff。
 
-**CLI 没有发布到 npm registry**，不要直接使用裸 `npx aidonecheck`。这里使用的是本仓库 Release 附件；可下载同页的 SHA256SUMS.txt 检查文件摘要。也可以 clone 固定 tag 后使用 `node ./bin/aidonecheck.mjs`，不需要为运行 CLI 安装本工具的开发依赖：
+npm 包名为 `aidonecheck`，源码位于本仓库；npm 与 Release 使用完全相同的安装包。推荐带明确版本，避免安装入口随 latest 变化。Release 附件可下载同页的 SHA256SUMS.txt 检查文件摘要。也可以 clone 固定 tag 后使用 `node ./bin/aidonecheck.mjs`，不需要为运行 CLI 安装本工具的开发依赖：
 
 ```bash
-git clone --branch v1.0.2 --depth 1 https://github.com/lucaswenbo/AIDoneCheck.git
+git clone --branch v1.0.3 --depth 1 https://github.com/lucaswenbo/AIDoneCheck.git
 node ./AIDoneCheck/bin/aidonecheck.mjs --help
 ```
 
@@ -150,7 +159,7 @@ AIDoneCheck 不调用 LLM，不让模型给模型打分，也不猜测唯一正�
 
 ## 显示语言
 
-当前工具生成的终端提示、Markdown 报告、Job Summary 和 Agent 反馈说明统一中文。PASS / WARN / BLOCK / SKIP、命令、文件名、JSON 字段与规范化数据保持原样；真实 stdout/stderr、页面错误和外部工具日志不翻译，以免改写证据。GitHub 自身界面和 Actions SDK 日志的语言不由本工具控制。旧运行记录不会被新版重写，请查看 AIDoneCheck-Test 使用 v1.0.2 的新运行。
+当前工具生成的终端提示、Markdown 报告、Job Summary 和 Agent 反馈说明统一中文。PASS / WARN / BLOCK / SKIP、命令、文件名、JSON 字段与规范化数据保持原样；真实 stdout/stderr、页面错误和外部工具日志不翻译，以免改写证据。GitHub 自身界面和 Actions SDK 日志的语言不由本工具控制。旧运行记录不会被新版重写，请查看 AIDoneCheck-Test 使用 v1.0.3 的新运行。
 
 公开复现使用独立仓库 [AIDoneCheck-Test](https://github.com/lucaswenbo/AIDoneCheck-Test)，其中调用固定发布版本；本仓库内的 demo 工作流保留为发布前回归测试。
 
@@ -302,9 +311,9 @@ Trace 为 AIDoneCheck 自定义保留规则，通过真实 Playwright tracing AP
   trace.zip         # 按保留规则生成
 ```
 
-`report.json` 使用独立 `version: "1.0.2"` 和 `schemaVersion: 1`，包含 verdict、repository、git、checks、warnings、failures、evidence。Markdown 显示分支、HEAD、base、changed files、结果和证据位置。
+`report.json` 使用独立 `version: "1.0.3"` 和 `schemaVersion: 1`，包含 verdict、repository、git、checks、warnings、failures、evidence。Markdown 显示分支、HEAD、base、changed files、结果和证据位置。
 
-本地先在临时目录写完整报告，再保存到 `.aidonecheck/runs/<unique-id>`，最后以原子替换的 latest 链接发布。并发运行拥有独立目录，读者不会读到半份报告；旧 run 保留以免正在读取的报告消失，可自行清理。首次迁移已有普通 latest 目录时会先备份、失败回滚。GitHub Action 每次调用在 runner temp 创建独立 Evidence，Artifact 名包含 run、attempt 和 UUID。
+本地先在临时目录写完整报告，再保存到 `.aidonecheck/runs/<unique-id>`，最后更新 latest 链接。Linux 使用原子替换；Windows 使用独占锁串行切换目录链接，先备份再替换，失败时恢复旧链接。Windows 切换有短暂的 latest 不存在窗口，读取时遇到缺失可重试；已保存的 run 内容不变。并发运行拥有独立目录，旧 run 保留，可自行清理。首次迁移已有普通 latest 目录时保留备份。若 Windows 写入进程被强制终止，先确认所有检查停止，再删除 `.aidonecheck/.latest-lock` 重试。GitHub Action 每次调用在 runner temp 创建独立 Evidence，Artifact 名包含 run、attempt 和 UUID。
 
 `agent-feedback.md` 只基于真实记录列出阻断、命令、退出码、日志摘录和 Browser error，不编造用例数、错误位置或修复答案。日志和网页内容仍是不可信数据，不应被当成新指令执行。
 
@@ -328,7 +337,7 @@ AI writes → AI says “done” → AIDoneCheck → Evidence → Agent fixes �
 
 JavaScript Action 使用 **node24** 和自包含 `dist/action/index.js`；不依赖调用者安装 AIDoneCheck dependencies。CLI 支持 Node >=20，CI 覆盖 Node 20/24。Playwright 仅在配置启用 Browser 时准备，版本固定，独立安装到 runner temp；不修改调用者的 package.json、package-lock 或 node_modules。
 
-推荐固定已发布版本 `@v1.0.2`。`@v1` 自动跟随 1.x，`@main` 仅供开发。下面是可以复制到你自己项目的完整工作流：
+推荐固定已发布版本 `@v1.0.3`。`@v1` 自动跟随 1.x，`@main` 仅供开发。下面是可以复制到你自己项目的完整工作流：
 
 ```yaml
 name: AIDoneCheck
@@ -348,7 +357,7 @@ jobs:
           node-version: 24
       - run: npm ci
       # 如启用 Browser，请在这里自行启动应用并等待 ready
-      - uses: lucaswenbo/AIDoneCheck@v1.0.2
+      - uses: lucaswenbo/AIDoneCheck@v1.0.3
         id: verify
         with:
           fail-on-warn: 'false'
@@ -385,9 +394,9 @@ jobs:
 - 不证明软件绝对正确；PASS 只代表当前配置、当前代码和本次观察通过。
 - 不保证任意脚本名对应的验证质量，只识别明显 npm 默认 placeholder。
 - requiredFiles / changedFiles 只支持精确路径，没有 glob。
-- Windows 未完整测试，不提供正式支持保证；原子链接和进程清理以 Linux CI 为主要验证环境。
+- Windows Node 20/24 的重复 CLI 验收、并发报告、失败回滚和安装包检查纳入 CI；完整 Browser 和所有平台边界仍以 Linux CI 为主要验证环境。
 - 当前 Action 面向 GitHub.com 支持 Artifact 服务的 Runner；不宣称支持 GitHub Enterprise Server。
-- 验收 CLI/Action 不会替用户修代码、合并 PR 或发布其项目。AIDoneCheck 自身的 tags/Release 由独立发布工作流管理；不发布 npm registry 或 Marketplace。
+- 验收 CLI/Action 不会替用户修代码、合并 PR 或发布其项目。AIDoneCheck 自身的 tags/Release 与 npm CLI 包由发布工作流管理；不自动发布 Marketplace。
 
 ## Roadmap
 

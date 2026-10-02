@@ -3,7 +3,7 @@ import fs8 from "node:fs/promises";
 import path5 from "node:path";
 
 // src/types.ts
-var VERSION = "1.0.2";
+var VERSION = "1.0.3";
 var PLAYWRIGHT_VERSION = "1.63.0";
 var StartupError = class extends Error {
   name = "StartupError";
@@ -526,6 +526,7 @@ async function runBrowser(browser, config, directory) {
 import fs7 from "node:fs/promises";
 import path4 from "node:path";
 import { randomUUID } from "node:crypto";
+import { setTimeout as delay } from "node:timers/promises";
 
 // src/display.ts
 var messages = {
@@ -568,6 +569,7 @@ var messages = {
   "Evidence root cannot be a symlink": "证据根目录不能是符号链接",
   "Evidence runs directory cannot be a symlink": "证据 runs 目录不能是符号链接",
   "Refusing to replace an external latest symlink": "拒绝替换指向外部的 latest 符号链接",
+  "Evidence publication locked; after stopping all checks, remove .aidonecheck/.latest-lock and retry": "证据发布锁未释放；确认所有检查已停止后，删除 .aidonecheck/.latest-lock 再重试",
   "Latest report is missing, unreadable or damaged; run aidonecheck check first": "最近报告不存在、无法读取或已损坏；请先运行 aidonecheck check",
   "config.version is required and must equal 1": "配置必须包含 version，且值为 1",
   "Invalid browser.profile": "browser.profile 必须为 desktop 或 mobile",
@@ -712,22 +714,45 @@ async function finishEvidence(target, report) {
   await fs7.writeFile(path4.join(target.temp, "agent-feedback.md"), feedback(clean));
   await fs7.rename(target.temp, target.final);
   if (target.localRoot) {
-    const latest = path4.join(target.localRoot, "latest");
-    const stat = await fs7.lstat(latest).catch(() => null);
-    if (stat?.isSymbolicLink()) {
-      const dest = path4.resolve(target.localRoot, await fs7.readlink(latest));
-      if (!within(path4.join(target.localRoot, "runs"), dest)) throw new StartupError("Refusing to replace an external latest symlink");
+    const lock = path4.join(target.localRoot, ".latest-lock");
+    let handle;
+    if (process.platform === "win32") {
+      const deadline = Date.now() + 3e4;
+      while (!handle) {
+        try {
+          handle = await fs7.open(lock, "wx");
+        } catch (e) {
+          if (e.code !== "EEXIST") throw e;
+          if (Date.now() >= deadline) throw new StartupError("Evidence publication locked; after stopping all checks, remove .aidonecheck/.latest-lock and retry");
+          await delay(20);
+        }
+      }
     }
-    const link = path4.join(target.localRoot, `.latest-${randomUUID()}`);
-    await fs7.symlink(process.platform === "win32" ? target.final : path4.relative(target.localRoot, target.final), link, process.platform === "win32" ? "junction" : "dir");
-    const backup = path4.join(target.localRoot, `.previous-${randomUUID()}`);
-    if (stat && !stat.isSymbolicLink()) await fs7.rename(latest, backup);
     try {
-      await fs7.rename(link, latest);
-    } catch (e) {
-      if (stat && !stat.isSymbolicLink()) await fs7.rename(backup, latest);
-      await fs7.rm(link, { force: true });
-      throw e;
+      const latest = path4.join(target.localRoot, "latest");
+      const stat = await fs7.lstat(latest).catch(() => null);
+      if (stat?.isSymbolicLink()) {
+        const dest = path4.resolve(target.localRoot, await fs7.readlink(latest));
+        if (!within(path4.join(target.localRoot, "runs"), dest)) throw new StartupError("Refusing to replace an external latest symlink");
+      }
+      const link = path4.join(target.localRoot, `.latest-${randomUUID()}`);
+      await fs7.symlink(process.platform === "win32" ? target.final : path4.relative(target.localRoot, target.final), link, process.platform === "win32" ? "junction" : "dir");
+      const backup = path4.join(target.localRoot, `.previous-${randomUUID()}`);
+      const moved = stat && (!stat.isSymbolicLink() || process.platform === "win32");
+      if (moved) await fs7.rename(latest, backup);
+      try {
+        await fs7.rename(link, latest);
+      } catch (e) {
+        if (moved) await fs7.rename(backup, latest);
+        await fs7.rm(link, { force: true });
+        throw e;
+      }
+      if (moved && stat.isSymbolicLink()) await fs7.unlink(backup);
+    } finally {
+      if (handle) {
+        await handle.close();
+        await fs7.unlink(lock);
+      }
     }
   }
   return clean;
