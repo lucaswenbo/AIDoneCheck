@@ -4,8 +4,8 @@
 
 - 修复 Windows 第二次验收替换 latest 目录链接时的 EPERM；串行切换并在失败时恢复旧报告。
 - 为 Windows Node 20/24 增加重复 PASS/BLOCK/PASS、并发报告、失败回滚和实际安装包回归验证。
-- 新增 npm CLI 分发与固定版本的一行安装入口；保留 GitHub Release 安装包、校验摘要和 Action tags。
-- npm 发布使用已经公开验证的同一份 Release 安装包，支持 Trusted Publishing 和相同摘要的安全重试；发布后实际安装验证。
+- 简化固定版本 Release CLI 的一行安装入口；保留 GitHub Release 安装包、校验摘要和 Action tags。
+- 准备 npm Trusted Publishing 和相同摘要的安全重试；npm registry 分发暂缓，自动发布默认关闭。
 
 ## 1.0.2 - 2026-09-27
 

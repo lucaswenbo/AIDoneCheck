@@ -4,7 +4,7 @@
 
 ## 当前发布方式
 
-提供具体版本、浮动主版本、GitHub Release 和 npm CLI。采用**维护者提交版本 PR，CI 通过后自动发布**：没有依赖额外 GitHub PAT，不自动合并，不自动提升版本号。npm 是新增分发方式，不替换 Release。
+提供具体版本、浮动主版本和 GitHub Release CLI。采用**维护者提交版本 PR，CI 通过后自动发布**：没有依赖额外 GitHub PAT，不自动合并，不自动提升版本号。npm registry 分发暂缓，自动发布默认关闭；准备好的 npm 分发方式不替换 Release。
 
 这个仓库的 GitHub Release 包含可直接安装的 CLI `.tgz` 和 SHA256SUMS.txt；GitHub Action 直接通过 tag 引用仓库中自包含的 dist。
 
@@ -39,7 +39,7 @@
 5. 上传安装包及 SHA256SUMS.txt，校验上传摘要。
 6. 完成后才将 Release 设为正式稳定版，并更新 `vN` 浮动 tag。
 7. 只读消费 job 从公开 URL 下载包、检查摘要、实际安装，并分别使用固定版本和浮动主版本 Action 验证接入。
-8. 消费验证成功后，npm job 通过 OIDC Trusted Publishing 发布同一份 Release 安装包；核对 npm integrity，并实际从 npm 安装验证 CLI、PASS、真实 BLOCK 和 Evidence。已存在的版本只在摘要完全相同时接受重试，不覆盖。
+8. 仅仓库变量 `ENABLE_NPM_PUBLISH` 为 `true` 时，消费验证成功后，npm job 才通过 OIDC Trusted Publishing 发布同一份 Release 安装包；核对 npm integrity，并实际从 npm 安装验证 CLI、PASS、真实 BLOCK 和 Evidence。已存在的版本只在摘要完全相同时接受重试，不覆盖。当前保持关闭，npm job 跳过。
 
 仅 Release 发布 job 申请 `contents: write` 和 `actions: read`；npm job 申请 `id-token: write` 和 `contents: read`，普通 CI 保持只读。npm 使用经过校验的公开 Release 包，不执行其他工作流上传的代码，不接收外部 shell 命令。
 
@@ -51,7 +51,7 @@
 
 首次 npm 发布需要维护者登录自己的 npm 账号：确认 `aidonecheck` 包名可用，先从已验证的 Release 下载对应 `.tgz` 并检查 SHA256SUMS，再执行 `npm publish <下载包> --access public --registry=https://registry.npmjs.org`，按 npm 提示完成账号/双因素认证。不要重打包后冒充同一份 Release。
 
-包建立后，在 npm 包 Settings → Trusted publishing 配置 GitHub Actions：owner `lucaswenbo`、repository `AIDoneCheck`、workflow `release.yml`、environment 留空；允许 `npm publish`。不创建或保存长期 npm Token。npm 账号认证和 Trusted Publisher 配置完成前，npm job 可能失败，GitHub Release 保持有效；完成后重跑 **Publish verified release**，它会重新校验并补齐 npm 分发。仅同一版本的发布 SHA 可以补发，普通后续提交不会重新发布旧版本。
+包建立后，在 npm 包 Settings → Trusted publishing 配置 GitHub Actions：owner `lucaswenbo`、repository `AIDoneCheck`、workflow `release.yml`、environment 留空；允许 `npm publish`。不创建或保存长期 npm Token。完成认证与配置并决定恢复 npm 分发时，将仓库变量 `ENABLE_NPM_PUBLISH` 设为 `true`，随下一次版本发布启用 npm job。暂停期间保持变量未设置或不为 `true`，GitHub Release 和 Action 正常发布。仅同一版本的发布 SHA 可以补发，普通后续提交不会重新发布旧版本。
 
 配置步骤参考 [npm 官方 Trusted Publishing 文档](https://docs.npmjs.com/trusted-publishers/)。
 
