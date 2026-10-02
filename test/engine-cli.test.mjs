@@ -8,6 +8,23 @@ const fullScripts={test:'node --test test.mjs',typecheck:`node "${path.join(proj
 async function demo(t,fail=false){const {root}=await fixture(t,fullScripts);await write(root,'test.mjs',`import test from 'node:test';import assert from 'node:assert/strict';test('arithmetic',()=>assert.equal(2+2,${fail?5:4}));`);await write(root,'app.mjs','export const value = 4;\n');await write(root,'app.ts','export const value: number = 4;\n');await write(root,'tsconfig.json',{compilerOptions:{strict:true,noEmit:true,types:[],target:'ES2022'},files:['app.ts']});await write(root,'build.mjs',`import fs from 'node:fs';fs.mkdirSync('build',{recursive:true});fs.copyFileSync('app.mjs','build/app.mjs');`);await write(root,'.aidonecheck.json',{version:1,checks:{lint:false}});return root;}
 test('Demo A: healthy real Node tests/typecheck/build PASS; reports match',async t=>{const root=await demo(t);const r=await check({event:{name:'fixture',payload:{}},cwd:root});assert.equal(r.verdict,'PASS');assert(r.checks.filter(c=>['test','typecheck','build'].includes(c.id)).every(c=>c.status==='pass'));for(const f of ['report.json','report.md','agent-feedback.md'])assert((await fs.stat(path.join(root,'.aidonecheck/latest',f))).size>0);assert.equal((await readReport(root)).verdict,'PASS');assert(!r.evidence.files.includes('browser.png'));});
 test('Demo B: real assertion failure BLOCK, logs and all reports retained',async t=>{const root=await demo(t,true);const r=await check({event:{name:'fixture',payload:{}},cwd:root});assert.equal(r.verdict,'BLOCK');assert.equal(r.checks.find(c=>c.id==='test').result.exitCode,1);assert.equal(r.checks.find(c=>c.id==='build').status,'pass');const feedback=await fs.readFile(path.join(root,'.aidonecheck/latest/agent-feedback.md'),'utf8');assert(feedback.includes('BLOCK: test'));assert(feedback.includes('命令： npm test'));assert(feedback.includes('退出码： 1'));assert(feedback.includes('arithmetic'));});
+test('repeated CLI checks replace latest: PASS, BLOCK, then PASS with old evidence retained',async t=>{
+  const {root}=await fixture(t,{test:'node check.mjs'});
+  await write(root,'.aidonecheck.json',{version:1,checks:{lint:false,typecheck:false,build:false}});
+  let first;
+  for(const [code,expected] of [[0,'PASS'],[1,'BLOCK'],[0,'PASS']]) {
+    await write(root,'check.mjs',`process.exit(${code});`);
+    const result=runCli(root,['check','--json']);
+    assert.equal(result.status,code,result.stderr);
+    assert.equal(JSON.parse(result.stdout).verdict,expected);
+    assert.equal((await readReport(root)).verdict,expected);
+    assert.equal(runCli(root,['report']).status,0);
+    for(const name of ['report.json','report.md','agent-feedback.md'])assert((await fs.stat(path.join(root,'.aidonecheck/latest',name))).size>0);
+    first??=await fs.realpath(path.join(root,'.aidonecheck/latest'));
+  }
+  assert.equal(JSON.parse(await fs.readFile(path.join(first,'report.json'),'utf8')).verdict,'PASS');
+  assert(!(await fs.readdir(path.join(root,'.aidonecheck'))).some(name=>name==='.latest-lock'||name.startsWith('.latest-')||name.startsWith('.previous-')));
+});
 test('requiredFiles and changedFiles: pass, missing, deletion, unchanged',async t=>{const {root}=await fixture(t,{});let config=parseConfig(quietConfig({requirements:{requiredFiles:['file.txt'],changedFiles:['file.txt']}}));assert.equal((await check({event:{name:'fixture',payload:{}},cwd:root,config})).verdict,'BLOCK');await write(root,'file.txt','changed');assert.equal((await check({event:{name:'fixture',payload:{}},cwd:root,config})).verdict,'PASS');await fs.rm(path.join(root,'file.txt'));const r=await check({event:{name:'fixture',payload:{}},cwd:root,config});assert.equal(r.checks.find(c=>c.id==='changedFiles:file.txt').status,'pass');assert.equal(r.checks.find(c=>c.id==='requiredFiles:file.txt').status,'fail');});
 test('no meaningful verification WARN; reliable Git discovery alone insufficient',async t=>{const {root}=await fixture(t,{});const r=await check({event:{name:'fixture',payload:{}},cwd:root,config:parseConfig(quietConfig())});assert.equal(r.verdict,'WARN');assert(r.warnings.some(w=>w.includes('No meaningful')));});
 test('verdict is canonical with BLOCK precedence',()=>{const c={id:'x',meaningful:true,blocking:false,details:''};assert.equal(verdict([{...c,status:'pass'}]),'PASS');assert.equal(verdict([{...c,status:'warn'}]),'WARN');assert.equal(verdict([{...c,status:'fail',blocking:true},{...c,status:'warn'}]),'BLOCK');assert.equal(verdict([]),'WARN');});
@@ -17,6 +34,23 @@ test('doctor discovery never runs checks or navigates; exits only 0/2',async t=>
 test('report reads only saved evidence even when Git binary and scripts unavailable',async t=>{const {root}=await fixture(t,{});assert.equal(runCli(root,['report']).status,2);await check({event:{name:'fixture',payload:{}},cwd:root,config:parseConfig(quietConfig({requirements:{requiredFiles:['file.txt']}}))});await write(root,'package.json','broken');const r=runCli(root,['report'],{PATH:''});assert.equal(r.status,0,r.stderr);assert(r.stdout.startsWith('PASS'));await fs.writeFile(path.join(root,'.aidonecheck/latest/report.json'),'{}');assert.equal(runCli(root,['report']).status,2);});
 test('atomic latest and isolated runs preserve complete previous evidence',async t=>{const {root}=await fixture(t,{});const config=parseConfig(quietConfig({requirements:{requiredFiles:['file.txt']}}));await check({event:{name:'fixture',payload:{}},cwd:root,config});const first=await fs.realpath(path.join(root,'.aidonecheck/latest'));const before=await fs.readFile(path.join(first,'report.json'),'utf8');const targets=await Promise.all([prepareEvidence(root),prepareEvidence(root)]);assert.notEqual(targets[0].temp,targets[1].temp);const report=JSON.parse(before);await Promise.all(targets.map(target=>finishEvidence(target,report)));assert.equal(await fs.readFile(path.join(first,'report.json'),'utf8'),before);const latest=await readReport(root);assert.equal(latest.verdict,'PASS');assert.notEqual(await fs.realpath(path.join(root,'.aidonecheck/latest')),first);assert(!(await fs.readdir(path.join(root,'.aidonecheck'))).some(s=>s.startsWith('.tmp-')));});
 test('fatal startup preserves previous report, external evidence symlink rejected',async t=>{const {root}=await fixture(t,{});await check({event:{name:'fixture',payload:{}},cwd:root,config:parseConfig(quietConfig())});const previous=await fs.realpath(path.join(root,'.aidonecheck/latest'));await assert.rejects(check({event:{name:'fixture',payload:{}},cwd:root,base:'invalid'}));assert.equal(await fs.realpath(path.join(root,'.aidonecheck/latest')),previous);const {root:other}=await fixture(t,{});await fs.symlink(root,path.join(other,'.aidonecheck'),'dir');await assert.rejects(check({event:{name:'fixture',payload:{}},cwd:other}));});
+test('publication rollback retains previous evidence and releases Windows lock',async t=>{
+  const {root}=await fixture(t,{});
+  const report=await check({event:{name:'fixture',payload:{}},cwd:root,config:parseConfig(quietConfig())});
+  const latest=path.join(root,'.aidonecheck/latest');
+  const previous=await fs.realpath(latest);
+  const target=await prepareEvidence(root);
+  const rename=fs.rename;
+  const mock=t.mock.method(fs,'rename',async(from,to)=>{
+    if(path.basename(from).startsWith('.latest-') && path.basename(to)==='latest')throw Object.assign(new Error('publication failed'),{code:'EPERM'});
+    return rename(from,to);
+  });
+  await assert.rejects(finishEvidence(target,report),/publication failed/);
+  mock.mock.restore();
+  assert.equal(await fs.realpath(latest),previous);
+  assert.deepEqual(await readReport(root),report);
+  assert(!(await fs.readdir(path.dirname(latest))).some(name=>name==='.latest-lock'||name.startsWith('.latest-')||name.startsWith('.previous-')));
+});
 test('missing browser runtime is exit 2 and never mislabeled BLOCK',async t=>{const {root}=await fixture(t,{});await write(root,'.aidonecheck.json',quietConfig({browser:{enabled:true,url:'http://127.0.0.1:1'}}));const r=runCli(root,['check','--json'],{AIDONECHECK_PLAYWRIGHT_DIR:path.join(root,'not-installed')});assert.equal(r.status,2);assert.equal(JSON.parse(r.stdout).error.kind,'startup');assert.equal(runCli(root,['doctor'],{AIDONECHECK_PLAYWRIGHT_DIR:path.join(root,'not-installed')}).status,2);});
 test('scripts run from repository root when invoked below root',async t=>{const {root}=await fixture(t,{test:'node -e "if(!require(\'fs\').existsSync(\'file.txt\')) process.exit(1)"'});await write(root,'.aidonecheck.json',{version:1,checks:{lint:false,typecheck:false,build:false}});await fs.mkdir(path.join(root,'nested'));const r=runCli(path.join(root,'nested'),['check','--json']);assert.equal(r.status,0,r.stderr);assert.equal(JSON.parse(r.stdout).verdict,'PASS');});
 test('requiredFiles observes files created and deleted by verification scripts',async t=>{const {root}=await fixture(t,{test:'node -e "require(\'fs\').unlinkSync(\'file.txt\'); require(\'fs\').writeFileSync(\'generated.txt\',\'ok\')"'});const config=parseConfig({...quietConfig(),checks:{test:true,lint:false,typecheck:false,build:false},requirements:{requiredFiles:['file.txt','generated.txt']}});const r=await check({event:{name:'fixture',payload:{}},cwd:root,config});assert.equal(r.verdict,'BLOCK');assert.equal(r.checks.find(c=>c.id==='requiredFiles:file.txt').status,'fail');assert.equal(r.checks.find(c=>c.id==='requiredFiles:generated.txt').status,'pass');assert(r.git.changedFiles.includes('generated.txt'));});

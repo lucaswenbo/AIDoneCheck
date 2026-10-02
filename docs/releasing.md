@@ -1,10 +1,10 @@
 # AIDoneCheck 发布说明
 
-用户应优先使用固定版本 `v1.0.2`；希望自动跟随兼容更新时使用 `v1`。`main` 是开发分支。具体版本 tag 按流程不移动；浮动主版本 tag 只指向已发布的稳定版本。仓库是否强制禁止修改 tag，取决于另外配置的 GitHub 规则，不应混为一谈。
+用户应优先使用固定版本 `v1.0.3`；希望自动跟随兼容更新时使用 `v1`。`main` 是开发分支。具体版本 tag 按流程不移动；浮动主版本 tag 只指向已发布的稳定版本。仓库是否强制禁止修改 tag，取决于另外配置的 GitHub 规则，不应混为一谈。
 
 ## 当前发布方式
 
-与 ProdDoctor 一样提供具体版本、浮动主版本和 GitHub Release。AIDoneCheck 第一版采用**维护者提交版本 PR，CI 通过后自动发布**：没有依赖额外 PAT，不自动合并，不自动提升版本号，也不在 npm registry 发布包。
+提供具体版本、浮动主版本、GitHub Release 和 npm CLI。采用**维护者提交版本 PR，CI 通过后自动发布**：没有依赖额外 GitHub PAT，不自动合并，不自动提升版本号。npm 是新增分发方式，不替换 Release。
 
 这个仓库的 GitHub Release 包含可直接安装的 CLI `.tgz` 和 SHA256SUMS.txt；GitHub Action 直接通过 tag 引用仓库中自包含的 dist。
 
@@ -39,14 +39,21 @@
 5. 上传安装包及 SHA256SUMS.txt，校验上传摘要。
 6. 完成后才将 Release 设为正式稳定版，并更新 `vN` 浮动 tag。
 7. 只读消费 job 从公开 URL 下载包、检查摘要、实际安装，并分别使用固定版本和浮动主版本 Action 验证接入。
+8. 消费验证成功后，npm job 通过 OIDC Trusted Publishing 发布同一份 Release 安装包；核对 npm integrity，并实际从 npm 安装验证 CLI、PASS、真实 BLOCK 和 Evidence。已存在的版本只在摘要完全相同时接受重试，不覆盖。
 
-仅发布 job 申请 `contents: write` 和 `actions: read`；普通 CI 保持只读。发布不会下载或执行其他工作流上传的代码，不接收外部 shell 命令。
+仅 Release 发布 job 申请 `contents: write` 和 `actions: read`；npm job 申请 `id-token: write` 和 `contents: read`，普通 CI 保持只读。npm 使用经过校验的公开 Release 包，不执行其他工作流上传的代码，不接收外部 shell 命令。
 
 并发发布串行执行。固定 tag 不允许覆盖；失败重试会复用同 SHA 的 Draft Release，已上传文件摘要不一致时停止，不悄悄覆盖。普通 main 提交不会重新发布旧版本。若 main 已前移，应由新提交对应的完整 CI 再尝试。
 
 ## 首次发布与重试
 
 合并包含本工作流的版本 PR 后，main 上四条 CI 全绿即可自动发布，无需新建 Secrets。
+
+首次 npm 发布需要维护者登录自己的 npm 账号：确认 `aidonecheck` 包名可用，先从已验证的 Release 下载对应 `.tgz` 并检查 SHA256SUMS，再执行 `npm publish <下载包> --access public --registry=https://registry.npmjs.org`，按 npm 提示完成账号/双因素认证。不要重打包后冒充同一份 Release。
+
+包建立后，在 npm 包 Settings → Trusted publishing 配置 GitHub Actions：owner `lucaswenbo`、repository `AIDoneCheck`、workflow `release.yml`、environment 留空；允许 `npm publish`。不创建或保存长期 npm Token。npm 账号认证和 Trusted Publisher 配置完成前，npm job 可能失败，GitHub Release 保持有效；完成后重跑 **Publish verified release**，它会重新校验并补齐 npm 分发。仅同一版本的发布 SHA 可以补发，普通后续提交不会重新发布旧版本。
+
+配置步骤参考 [npm 官方 Trusted Publishing 文档](https://docs.npmjs.com/trusted-publishers/)。
 
 如果遇到网络等基础设施故障，可在 GitHub Actions 的 **Publish verified release** 手动 Run workflow，分支选 main。它仍执行同样的验证，不允许手动绕过。
 
@@ -58,8 +65,9 @@
 - 固定 tag 与 `vN` 都应指向已验收提交。
 - 参考 README，从公开 Release URL 安装 CLI，并验证 `aidonecheck --version`。
 - 使用固定 tag 的 Action 再完成一次真实消费测试。
+- 执行 `npm view aidonecheck@<版本> dist.integrity`，确认与 Release 安装包的 SHA-512 相同；从 npm 安装并运行验收。只有配置了工作流不等于 npm 已发布。
 - 不要将 main 绿灯、Draft Release 或仅创建 tag 当成已完成公开发布。
 
 ## 当前没有的自动化
 
-不自动创建 Release Please PR、不自动 bump、不自动 merge，也不自动 npm/Marketplace publish。以后需要时再加；当前流程与文档保持一致。
+不自动创建 Release Please PR、不自动 bump、不自动 merge，也不自动 Marketplace publish。

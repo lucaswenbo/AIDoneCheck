@@ -1,4 +1,4 @@
-export const VERSION = '1.0.2';
+export const VERSION = '1.0.3';
 export const PLAYWRIGHT_VERSION = '1.63.0';
 export type Status = 'pass' | 'warn' | 'fail' | 'skipped';
 export type Verdict = 'PASS' | 'WARN' | 'BLOCK';

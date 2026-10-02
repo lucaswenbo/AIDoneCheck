@@ -40,6 +40,7 @@ const messages:Record<string,string>={
   'Evidence root cannot be a symlink':'证据根目录不能是符号链接',
   'Evidence runs directory cannot be a symlink':'证据 runs 目录不能是符号链接',
   'Refusing to replace an external latest symlink':'拒绝替换指向外部的 latest 符号链接',
+  'Evidence publication locked; after stopping all checks, remove .aidonecheck/.latest-lock and retry':'证据发布锁未释放；确认所有检查已停止后，删除 .aidonecheck/.latest-lock 再重试',
   'Latest report is missing, unreadable or damaged; run aidonecheck check first':'最近报告不存在、无法读取或已损坏；请先运行 aidonecheck check',
   'config.version is required and must equal 1':'配置必须包含 version，且值为 1',
   'Invalid browser.profile':'browser.profile 必须为 desktop 或 mobile',
