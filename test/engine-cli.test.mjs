@@ -42,7 +42,7 @@ test('publication rollback retains previous evidence and releases Windows lock',
   const target=await prepareEvidence(root);
   const rename=fs.rename;
   const mock=t.mock.method(fs,'rename',async(from,to)=>{
-    if(path.basename(from).startsWith('.latest-') && to===latest)throw Object.assign(new Error('publication failed'),{code:'EPERM'});
+    if(path.basename(from).startsWith('.latest-') && path.basename(to)==='latest')throw Object.assign(new Error('publication failed'),{code:'EPERM'});
     return rename(from,to);
   });
   await assert.rejects(finishEvidence(target,report),/publication failed/);
