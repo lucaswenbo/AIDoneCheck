@@ -53,6 +53,7 @@ jobs:
         with:
           working-directory: .smoke
           base: main
+          language: zh
       - name: Assert correct failure, outputs, summary and isolation
         if: always()
         env:
@@ -61,6 +62,7 @@ jobs:
           ARTIFACT_ID: ${{ steps.block.outputs.artifact_id }}
           ACTION_OUTCOME: ${{ steps.block.outcome }}
           EXPECTED_VERDICT: BLOCK
+          EXPECTED_LANGUAGE: zh
           BROWSER: 'true'
           FIRST_DIR: ${{ steps.pass.outputs.evidence_dir }}
           FIRST_NAME: ${{ steps.pass.outputs.evidence_name }}

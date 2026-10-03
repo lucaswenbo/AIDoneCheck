@@ -1,6 +1,14 @@
-import { Check } from './types.js';
+import { Check, StartupError } from './types.js';
+export type Language = 'en' | 'zh';
+export function parseLanguage(value:string='en'):Language {
+  if(value!=='en' && value!=='zh')throw new StartupError('Language must be en or zh');
+  return value;
+}
+export const text = (language:Language,en:string,zh:string):string => language==='zh'?zh:en;
 // Presentation only: canonical JSON, commands and captured evidence stay unchanged.
 const messages:Record<string,string>={
+  'Language must be en or zh':'语言必须为 en 或 zh',
+  '--lang requires en or zh':'--lang 后必须提供 en 或 zh',
   'Disabled by configuration':'已按配置关闭',
   'Browser check disabled':'未启用浏览器检查',
   'No real test: npm placeholder script discovered':'没有真实测试：发现 npm 默认占位脚本',
@@ -57,7 +65,8 @@ const messages:Record<string,string>={
   'Chromium could not launch; check runtime/system dependencies (environment error)':'Chromium 无法启动；请检查运行环境和系统依赖（环境错误）',
   'Artifact service returned no artifact ID':'产物服务未返回 Artifact ID'
 };
-export function displayMessage(message:string):string {
+export function displayMessage(message:string,language:Language='en'):string {
+  if(language==='en')return message;
   if(Object.hasOwn(messages,message))return messages[message]!;
   const prefix:[string,string][]=[
     ['Symlink escapes repository: ','符号链接指向仓库外部：'],['Cannot safely resolve symlink: ','无法安全解析符号链接：'],
@@ -66,7 +75,7 @@ export function displayMessage(message:string):string {
     ['Main document HTTP ','主文档 HTTP 状态码：']
   ];
   for(const [from,to] of prefix)if(message.startsWith(from))return to+message.slice(from.length);
-  for(const [from,to] of [['Invalid .aidonecheck.json: ','.aidonecheck.json 配置无效：'],['Navigation / page inspection failed: ','页面导航或检查失败：'],['Browser check failed: ','浏览器检查失败：']] as const)if(message.startsWith(from))return to+displayMessage(message.slice(from.length));
+  for(const [from,to] of [['Invalid .aidonecheck.json: ','.aidonecheck.json 配置无效：'],['Navigation / page inspection failed: ','页面导航或检查失败：'],['Browser check failed: ','浏览器检查失败：']] as const)if(message.startsWith(from))return to+displayMessage(message.slice(from.length),language);
   let m=message.match(/^Same-origin critical resource failure events omitted from detailed evidence: (\d+) \(document\/script\/stylesheet\)$/);
   if(m)return `详细记录之外仍检测到 ${m[1]} 条同源关键资源失败事件（文档、脚本或样式表）`;
   m=message.match(/^(\S+) script not found$/);if(m)return `未发现 ${m[1]} 脚本`;
@@ -80,21 +89,30 @@ export function displayMessage(message:string):string {
   if(m){const types:Record<string,string>={document:'文档',script:'脚本',stylesheet:'样式表',image:'图片',font:'字体',fetch:'fetch',xhr:'XHR',media:'媒体',other:'其他'};return `${types[m[1]!]}请求失败（${m[2]}）：${m[3]}`;}
   return message; // Unrecognized external errors and captured messages stay verbatim.
 }
-export function checkName(id:string):string {
+export function checkName(id:string,language:Language='en'):string {
+  if(language==='en') {
+    const names:Record<string,string>={git:'Git changes',test:'Test',lint:'Lint',typecheck:'Typecheck',build:'Build',browser:'Browser','browser-warnings':'Browser warnings',verification:'Verification coverage'};
+    if(Object.hasOwn(names,id))return names[id]!;
+    if(id.startsWith('changedFiles:'))return 'Required change: '+id.slice(13);
+    if(id.startsWith('requiredFiles:'))return 'Required file: '+id.slice(14);
+    return id;
+  }
   const names:Record<string,string>={git:'Git 修改',test:'测试',lint:'代码规范',typecheck:'类型检查',build:'构建',browser:'浏览器','browser-warnings':'浏览器警告',verification:'验证覆盖'};
   if(Object.hasOwn(names,id))return names[id]!;
   if(id.startsWith('changedFiles:'))return '指定修改：'+id.slice(13);
   if(id.startsWith('requiredFiles:'))return '必需文件：'+id.slice(14);
   return id;
 }
-export function checkDetails(c:Check,checks:Check[]=[]):string {
-  if(c.command&&c.result){const r=c.result;return r.timedOut?`${c.command} 执行超时`:c.status==='pass'?`${c.command} 执行通过`:`${c.command} 执行失败，退出码 ${r.exitCode??'无'}${r.signal?`，信号 ${r.signal}`:''}`;}
-  if(c.id.startsWith('changedFiles:'))return `${c.status==='pass'?'已在可靠 Git diff 中确认修改':'可靠 Git diff 中未发现要求的修改'}：${c.id.slice(13)}`;
-  if(c.id.startsWith('requiredFiles:'))return `${c.status==='pass'?'必需文件存在':'必需文件不存在或不是普通文件'}：${c.id.slice(14)}`;
+export function checkDetails(c:Check,checks:Check[]=[],language:Language='en'):string {
+  if(language==='zh') {
+    if(c.command&&c.result){const r=c.result;return r.timedOut?`${c.command} 执行超时`:c.status==='pass'?`${c.command} 执行通过`:`${c.command} 执行失败，退出码 ${r.exitCode??'无'}${r.signal?`，信号 ${r.signal}`:''}`;}
+    if(c.id.startsWith('changedFiles:'))return `${c.status==='pass'?'已在可靠 Git diff 中确认修改':'可靠 Git diff 中未发现要求的修改'}：${c.id.slice(13)}`;
+    if(c.id.startsWith('requiredFiles:'))return `${c.status==='pass'?'必需文件存在':'必需文件不存在或不是普通文件'}：${c.id.slice(14)}`;
+  }
   if(c.id==='browser'||c.id==='browser-warnings'){
     const data=c.data??checks.find(x=>x.id==='browser')?.data;
     const values=c.id==='browser-warnings'?data?.warnings:c.blocking?data?.failures:data?.warnings;
-    if(Array.isArray(values)&&values.length)return values.map(v=>displayMessage(String(v))).join('；');
+    if(Array.isArray(values)&&values.length)return values.map(v=>displayMessage(String(v),language)).join(text(language,'; ','；'));
   }
-  return displayMessage(c.details);
+  return displayMessage(c.details,language);
 }

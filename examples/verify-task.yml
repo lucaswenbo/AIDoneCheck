@@ -1,5 +1,5 @@
-# 放入你自己项目的 .github/workflows/verify-task.yml。
-name: AIDoneCheck 验收代码任务
+# Copy to your project's .github/workflows/verify-task.yml.
+name: AIDoneCheck verification
 on:
   workflow_dispatch:
   pull_request:
@@ -19,8 +19,9 @@ jobs:
         with:
           node-version: 24
       - run: npm ci
-      - name: 验收并保存证据
+      - name: Verify and preserve evidence
         id: verify
-        uses: lucaswenbo/AIDoneCheck@v1.0.3
+        uses: lucaswenbo/AIDoneCheck@v1.0.4
         with:
           fail-on-warn: 'false'
+          language: en # Use zh for Simplified Chinese.

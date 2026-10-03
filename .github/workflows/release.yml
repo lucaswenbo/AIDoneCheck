@@ -63,7 +63,7 @@ jobs:
       - run: node scripts/action-fixture.mjs .smoke
       - name: Consume fixed published Action exactly as users do
         id: fixed
-        uses: lucaswenbo/AIDoneCheck@v1.0.3
+        uses: lucaswenbo/AIDoneCheck@v1.0.4
         with:
           working-directory: .smoke
           base: main

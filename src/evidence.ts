@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 import { Report, StartupError } from './types.js';
 import { markdown, feedback, validateReport } from './report.js';
+import { Language } from './display.js';
 import { safePath, sanitize, within } from './safety.js';
 export interface EvidenceTarget { temp: string; final: string; localRoot?: string }
 export async function prepareEvidence(root: string, final?: string): Promise<EvidenceTarget> {
@@ -21,11 +22,11 @@ export async function prepareEvidence(root: string, final?: string): Promise<Evi
   await fs.mkdir(runs,{recursive:true});
   return {temp:await fs.mkdtemp(path.join(localRoot,'.tmp-')),final:path.join(runs,randomUUID()),localRoot};
 }
-export async function finishEvidence(target: EvidenceTarget, report: Report): Promise<Report> {
+export async function finishEvidence(target: EvidenceTarget, report: Report, language:Language='en'): Promise<Report> {
   const clean=sanitize(report);
   await fs.writeFile(path.join(target.temp,'report.json'),JSON.stringify(clean,null,2)+'\n');
-  await fs.writeFile(path.join(target.temp,'report.md'),markdown(clean));
-  await fs.writeFile(path.join(target.temp,'agent-feedback.md'),feedback(clean));
+  await fs.writeFile(path.join(target.temp,'report.md'),markdown(clean,language));
+  await fs.writeFile(path.join(target.temp,'agent-feedback.md'),feedback(clean,language));
   await fs.rename(target.temp,target.final);
   if(target.localRoot) {
     // ponytail: Windows directory replacement needs a short exclusive lock;
