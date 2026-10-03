@@ -17,6 +17,8 @@ try {
   assert.equal(installedPkg.license,'Apache-2.0');
   assert((await fs.readFile(path.join(installedRoot,'LICENSE'),'utf8')).startsWith('Apache License\n'));
   assert.match(await fs.readFile(path.join(installedRoot,'NOTICE'),'utf8'),/Copyright 2026 Lucas Lu/);
+  assert((await fs.readFile(path.join(installedRoot,'README.md'),'utf8')).includes('[简体中文](README.zh-CN.md)'));
+  assert((await fs.readFile(path.join(installedRoot,'README.zh-CN.md'),'utf8')).includes('[English](README.md)'));
   const cli=path.join(tmp,'node_modules/aidonecheck/bin/aidonecheck.mjs');
   assert.equal(execFileSync(process.execPath,[cli,'--version'],{encoding:'utf8'}).trim(),pkg.version);
   assert.equal(runNpm(['exec','--offline','--','aidonecheck','--version'],{cwd:tmp}).trim(),pkg.version);
@@ -29,10 +31,12 @@ try {
   const args=[cli,'check','--base','origin/main','--json'];
   const pass=JSON.parse(execFileSync(process.execPath,args,{cwd:root,env,encoding:'utf8'}));
   assert.equal(pass.verdict,'PASS');assert.equal(pass.version,pkg.version);
+  assert((await fs.readFile(path.join(root,'.aidonecheck/latest/report.md'),'utf8')).includes('| Check | Result | Details |'));
   await write(root,'check.mjs','import assert from "node:assert/strict"; assert.equal(2+2,5);');
   let failure;
-  try{execFileSync(process.execPath,args,{cwd:root,env,encoding:'utf8',stdio:['ignore','pipe','pipe']});}catch(e){failure=e;}
+  try{execFileSync(process.execPath,[...args,'--lang','zh'],{cwd:root,env,encoding:'utf8',stdio:['ignore','pipe','pipe']});}catch(e){failure=e;}
   assert.equal(failure?.status,1);assert.equal(JSON.parse(failure.stdout).verdict,'BLOCK');
   for(const name of ['report.json','report.md','agent-feedback.md'])assert((await fs.stat(path.join(root,'.aidonecheck/latest',name))).size>0);
+  assert((await fs.readFile(path.join(root,'.aidonecheck/latest/report.md'),'utf8')).includes('| 检查项 | 结果 | 说明 |'));
   console.log(`Packaged CLI ${pkg.version}: isolated install, PASS, real test BLOCK and evidence verified`);
 }finally{if(root)await fs.rm(root,{recursive:true,force:true});await fs.rm(tmp,{recursive:true,force:true});}

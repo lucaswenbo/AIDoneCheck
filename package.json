@@ -1,6 +1,6 @@
 {
   "name": "aidonecheck",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "AI says done. AIDoneCheck checks deterministic verification evidence.",
   "type": "module",
   "bin": {
@@ -15,6 +15,7 @@
     "url": "https://github.com/lucaswenbo/AIDoneCheck.git"
   },
   "files": [
+    "README.zh-CN.md",
     "bin",
     "dist/cli",
     "LICENSE",

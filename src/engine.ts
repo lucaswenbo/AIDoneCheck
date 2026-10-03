@@ -9,12 +9,13 @@ import { safePath } from './safety.js';
 import { Browser, prepareBrowser, runBrowser } from './browser.js';
 import { finishEvidence, prepareEvidence } from './evidence.js';
 import { verdict } from './report.js';
+import { Language } from './display.js';
 export async function environment(root:string):Promise<void> {
   if(Number(process.versions.node.split('.')[0])<20)throw new StartupError('Node.js >=20 required');
   const npm=await runNpm(['--version'],root,15_000);
   if(npm.exitCode!==0||npm.timedOut)throw new StartupError('npm is unavailable');
 }
-export interface RunOptions {cwd?:string;base?:string;event?:EventContext;config?:Config;evidenceDirectory?:string;scriptTimeoutMs?:number}
+export interface RunOptions {cwd?:string;base?:string;event?:EventContext;config?:Config;evidenceDirectory?:string;scriptTimeoutMs?:number;language?:Language}
 export async function check(options:RunOptions={}):Promise<Report> {
   const repo=await repository(options.cwd??process.cwd());
   const config=options.config??await loadConfig(repo.root);
@@ -52,7 +53,7 @@ export async function check(options:RunOptions={}):Promise<Report> {
     const files=['report.json','report.md','agent-feedback.md'];
     for(const name of ['browser.png','trace.zip'])if(await fs.stat(path.join(target.temp,name)).catch(()=>null))files.push(name);
     const report:Report={tool:'AIDoneCheck',version:VERSION,schemaVersion:1,verdict:verdict(checks),createdAt:new Date().toISOString(),repository:{branch:finalRepo.branch,head:finalRepo.head},git,checks,warnings:checks.filter(c=>c.status==='warn').map(c=>c.details),failures:checks.filter(c=>c.status==='fail'&&c.blocking).map(c=>c.details),evidence:{directory:options.evidenceDirectory??'.aidonecheck/latest',files}};
-    return await finishEvidence(target,report);
+    return await finishEvidence(target,report,options.language);
   } finally {
     if(target)await fs.rm(target.temp,{recursive:true,force:true}).catch(()=>{});
     if(browser)await browser.close().catch(()=>{});

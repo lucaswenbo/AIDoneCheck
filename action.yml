@@ -5,6 +5,9 @@ branding:
   icon: check-circle
   color: blue
 inputs:
+  language:
+    description: 'Display language for tool output and reports: en or zh'
+    default: 'en'
   working-directory:
     description: 'Repository directory relative to GITHUB_WORKSPACE'
     default: '.'

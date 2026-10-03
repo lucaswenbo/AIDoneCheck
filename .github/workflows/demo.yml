@@ -43,6 +43,7 @@ jobs:
         with:
           working-directory: .demo
           base: main
+          language: zh
       - name: 断言实际结论、失败原因和 Evidence
         if: always()
         env:

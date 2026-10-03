@@ -9,7 +9,7 @@ import { repository, actionEvent } from './git.js';
 import { loadConfig } from './config.js';
 import { runNpm, runCommand } from './command.js';
 import { markdown, exitCode } from './report.js';
-import { displayMessage } from './display.js';
+import { displayMessage, Language, parseLanguage, text } from './display.js';
 import { redact, within } from './safety.js';
 import { PLAYWRIGHT_VERSION, StartupError } from './types.js';
 export async function installBrowserRuntime():Promise<void> {
@@ -29,7 +29,9 @@ async function action():Promise<void> {
   const dir=path.join(process.env.RUNNER_TEMP??os.tmpdir(),`aidonecheck-evidence-${id}`);
   const name=`aidonecheck-${process.env.GITHUB_RUN_ID??'local'}-${process.env.GITHUB_RUN_ATTEMPT??'1'}-${id}`;
   let failed=false;
+  let language:Language='en';
   try {
+    language=parseLanguage(core.getInput('language')||'en');
     const workspace=await fs.realpath(process.env.GITHUB_WORKSPACE??process.cwd());
     const cwd=await fs.realpath(path.resolve(workspace,core.getInput('working-directory')||'.'));
     if(!within(workspace,cwd))throw new StartupError('working-directory must be within GITHUB_WORKSPACE');
@@ -38,22 +40,22 @@ async function action():Promise<void> {
     const config=await loadConfig(repo.root);
     if(config.browser.enabled)await installBrowserRuntime();
     const failOnWarn=core.getBooleanInput('fail-on-warn');
-    const report=await check({cwd:repo.root,config,base:core.getInput('base')||undefined,event:await actionEvent(),evidenceDirectory:dir});
-    const summary=markdown(report);
+    const report=await check({cwd:repo.root,config,base:core.getInput('base')||undefined,event:await actionEvent(),evidenceDirectory:dir,language});
+    const summary=markdown(report,language);
     await fs.writeFile(path.join(dir,'summary.md'),summary);
     if(process.env.GITHUB_STEP_SUMMARY)await fs.appendFile(process.env.GITHUB_STEP_SUMMARY,summary);
     core.setOutput('verdict',report.verdict);
     failed=exitCode(report,failOnWarn)!==0;
-    core.info(`AIDoneCheck 结论： ${report.verdict}`);
+    core.info(`${text(language,'AIDoneCheck verdict:','AIDoneCheck 结论：')} ${report.verdict}`);
   }catch(e){
     failed=true;
     const message=redact((e as Error).message);
     await fs.mkdir(dir,{recursive:true});
     await fs.writeFile(path.join(dir,'startup-error.json'),JSON.stringify({tool:'AIDoneCheck',error:message,exitCode:2},null,2)+'\n');
-    const summary=`# AIDoneCheck — ERROR\n\n发生启动或基础设施错误，验证未完成。\n\n${displayMessage(message).replace(/[<>]/g,'')}\n`;
+    const summary=`# AIDoneCheck — ERROR\n\n${text(language,'Startup or infrastructure error; verification did not complete.','发生启动或基础设施错误，验证未完成。')}\n\n${displayMessage(message,language).replace(/[<>]/g,'')}\n`;
     await fs.writeFile(path.join(dir,'summary.md'),summary);
     if(process.env.GITHUB_STEP_SUMMARY)await fs.appendFile(process.env.GITHUB_STEP_SUMMARY,summary);
-    core.error(displayMessage(message));
+    core.error(displayMessage(message,language));
   }
   core.setOutput('evidence_dir',dir);core.setOutput('evidence_name',name);
   core.setOutput('summary_path',path.join(dir,'summary.md'));
@@ -63,7 +65,7 @@ async function action():Promise<void> {
     if(!artifact.id)throw new Error('Artifact service returned no artifact ID');
     core.setOutput('artifact_id',String(artifact.id));
     core.setOutput('artifact_url',`${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}/artifacts/${artifact.id}`);
-  }catch(e){failed=true;core.error(`证据上传失败：${displayMessage(redact((e as Error).message))}`);}
-  if(failed)core.setFailed('AIDoneCheck 未通过。请查看已保留的证据和总结。');
+  }catch(e){failed=true;core.error(`${text(language,'Evidence upload failed: ','证据上传失败：')}${displayMessage(redact((e as Error).message),language)}`);}
+  if(failed)core.setFailed(text(language,'AIDoneCheck did not pass. Review the preserved evidence and summary.','AIDoneCheck 未通过。请查看已保留的证据和总结。'));
 }
-void action().catch(e=>core.setFailed(displayMessage(redact((e as Error).message))));
+void action().catch(e=>core.setFailed(displayMessage(redact((e as Error).message),core.getInput('language')==='zh'?'zh':'en')));

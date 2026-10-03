@@ -19,7 +19,7 @@ export async function checkVersion(root=process.cwd()){
   const lock=JSON.parse(await fs.readFile(`${root}/package-lock.json`,'utf8'));
   if(lock.version!==pkg.version||lock.packages[''].version!==pkg.version)throw new Error('Lockfile version differs');
   const notes=await fs.readFile(`${root}/docs/releases/${pkg.version}.md`,'utf8');
-  if(!notes.includes(`v${pkg.version}`)||/Unreleased/.test(notes))throw new Error('Missing final Chinese release notes');
+  if(!notes.includes(`v${pkg.version}`)||/Unreleased/.test(notes))throw new Error('Missing final release notes');
   const changelog=await fs.readFile(`${root}/CHANGELOG.md`,'utf8');
   if(!new RegExp(`## ${pkg.version.replaceAll('.','\\.')} - \\d{4}-\\d{2}-\\d{2}`).test(changelog))throw new Error('Missing dated CHANGELOG release entry');
   const actual=execFileSync(process.execPath,[`${root}/bin/aidonecheck.mjs`,'--version'],{encoding:'utf8'}).trim();

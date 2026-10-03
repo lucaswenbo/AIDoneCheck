@@ -1,5 +1,12 @@
 # 更新日志
 
+## 1.0.4 - 2026-10-04
+
+- README 默认英文，新增完整简体中文 README，顶部链接可互相切换；两份文档都包含于 CLI 安装包。
+- 工具输出默认英文；CLI 使用 `--lang en|zh`、Action 使用 `language: en|zh` 切换帮助、诊断、终端摘要、Markdown 报告、Job Summary 和 Agent 反馈。
+- 保持 JSON schema、规范化消息、真实日志、判定和退出码不变；npm registry 发布继续暂停，保留 Release 一行安装与 Action。
+- 回归覆盖英文默认值、中文报告和 CLI、非法语言、旧 JSON 重新渲染，以及两种语言的 Action Evidence。
+
 ## 1.0.3 - 2026-10-02
 
 - 修复 Windows 第二次验收替换 latest 目录链接时的 EPERM；串行切换并在失败时恢复旧报告。

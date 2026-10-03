@@ -53,4 +53,6 @@ jobs:
       - run: npm run build
       - name: Repeated CLI exits, concurrent writers and rollback on Windows
         run: node --test --test-name-pattern="repeated CLI|JSON purity|atomic latest|publication rollback" test/engine-cli.test.mjs
+      - name: English defaults and Chinese CLI/report selection on Windows
+        run: node --test test/display.test.mjs
       - run: npm run test:package
